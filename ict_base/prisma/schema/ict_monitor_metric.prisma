@@ -1,0 +1,173 @@
+enum metric_category {
+  host_cpu
+  host_memory
+  host_disk
+  host_network
+  host_load
+  host_temperature
+  host_gpu
+  container_cpu
+  container_memory
+  container_network
+  container_block
+  container_pids
+  netif_traffic
+  netif_errors
+  netif_utilization
+  snmp_device_cpu
+  snmp_device_memory
+  snmp_device_temp
+  snmp_device_uptime
+}
+
+enum metric_source {
+  agent
+  docker_api
+  snmp_poller
+  ssh_collect
+  api_pull
+}
+
+model ict_monitor_metric_definition {
+  id            String          @id @default(uuid())
+  company_id    String
+  code          String
+  name          String
+  category      metric_category
+  unit          String
+  description   String?
+  data_type     String          @default("gauge")
+  min_value     Decimal?
+  max_value     Decimal?
+  is_active     Boolean         @default(true)
+  created_at    DateTime        @default(now())
+  updated_at    DateTime        @default(now())
+  points        ict_monitor_metric_point[]
+  thresholds    ict_monitor_alert_rule[]
+
+  @@unique([company_id, code])
+  @@index([company_id])
+  @@index([category])
+}
+
+model ict_monitor_metric_point {
+  id              String                        @id @default(uuid())
+  company_id      String
+  metric_def_id   String
+  source          metric_source                 @default(agent)
+  entity_type     String
+  entity_id       String
+  agent_id        String?
+  value           Decimal
+  tags            Json?
+  collected_at    DateTime                      @default(now())
+  metric_def      ict_monitor_metric_definition @relation(fields: [metric_def_id], references: [id])
+  agent           ict_monitor_agent?            @relation(fields: [agent_id], references: [id])
+
+  @@index([metric_def_id, collected_at])
+  @@index([company_id, entity_type, entity_id, collected_at])
+  @@index([agent_id])
+  @@index([collected_at])
+}
+
+model ict_monitor_metric_daily {
+  id              String    @id @default(uuid())
+  company_id      String
+  metric_def_id   String
+  entity_type     String
+  entity_id       String
+  date            DateTime  @db.Date
+  min_value       Decimal
+  max_value       Decimal
+  avg_value       Decimal
+  sum_value       Decimal
+  sample_count    Int
+  created_at      DateTime  @default(now())
+
+  @@unique([metric_def_id, entity_type, entity_id, date])
+  @@index([company_id, entity_type, entity_id, date])
+  @@index([date])
+}
+
+model ict_monitor_host_snapshot {
+  id             String   @id @default(uuid())
+  company_id     String
+  agent_id       String
+  hostname       String
+  cpu_percent    Decimal
+  cpu_cores      Int?
+  cpu_model      String?
+  memory_usage   BigInt
+  memory_total   BigInt
+  memory_percent Decimal
+  swap_usage     BigInt?
+  swap_total     BigInt?
+  disk_total     BigInt
+  disk_used      BigInt
+  disk_percent   Decimal
+  disk_io_read   BigInt?
+  disk_io_write  BigInt?
+  net_rx         BigInt
+  net_tx         BigInt
+  load_avg_1     Decimal?
+  load_avg_5     Decimal?
+  load_avg_15    Decimal?
+  uptime_seconds BigInt?
+  temperature    Decimal?
+  gpu_percent    Decimal?
+  gpu_memory     Decimal?
+  gpu_temp       Decimal?
+  snapshot_at    DateTime @default(now())
+
+  @@index([agent_id, snapshot_at])
+  @@index([company_id, snapshot_at])
+  @@index([snapshot_at])
+}
+
+model ict_monitor_disk_health {
+  id                  String   @id @default(uuid())
+  company_id          String
+  agent_id            String
+  device_name         String
+  model_name          String?
+  serial_number       String?
+  firmware            String?
+  capacity_bytes      BigInt?
+  sector_size         Int?
+  temperature         Int?
+  power_on_hours      Int?
+  power_cycle_count   Int?
+  reallocated_sectors Int?
+  pending_sectors     Int?
+  uncorrected_errors  Int?
+  wear_leveling       Int?
+  health_status       String   @default("unknown")
+  smart_attributes    Json?
+  checked_at          DateTime @default(now())
+
+  @@index([agent_id, checked_at])
+  @@index([company_id])
+  @@index([device_name])
+  @@index([health_status])
+}
+
+model ict_monitor_gpu_snapshot {
+  id            String   @id @default(uuid())
+  company_id    String
+  agent_id      String
+  gpu_index     Int
+  gpu_name      String
+  driver_version String?
+  utilization   Decimal?
+  memory_used   BigInt?
+  memory_total  BigInt?
+  temperature   Int?
+  power_draw    Decimal?
+  fan_speed     Int?
+  clock_core    Int?
+  clock_memory  Int?
+  snapshot_at   DateTime @default(now())
+
+  @@index([agent_id, gpu_index, snapshot_at])
+  @@index([company_id, snapshot_at])
+}

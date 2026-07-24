@@ -1,0 +1,148 @@
+enum action_type {
+  hide
+  view
+  book
+  post
+}
+
+model dat_user {
+  id                         String                    @id @default(uuid())
+  username                   String
+  email                      String
+  password                   String
+  fullname                   String
+  phone                      String?
+  company_id                 String                    @default("")
+  employee_id                String?
+  location_id                String?
+  department_id              String?
+  division_id                String?
+  role                       String                    @default("staff")
+  job                        String                    @default("")
+  key                        String                    @default("")
+  is_admin                   Boolean                   @default(false)
+  is_hris                    Boolean                   @default(false)
+  is_active                  Boolean                   @default(false)
+  created_at                 DateTime                  @default(now())
+  updated_at                 DateTime                  @default(now())
+  companies                  dat_user_company[]
+  locations                  dat_user_location[]
+  sessions                   dat_user_session[]
+  approval_signs             dat_approval_sign[]
+  signature_flags            dat_signature_flag[]
+  doc_authored               ict_doc[]                 @relation("doc_author")
+  doc_owned                  ict_doc[]                 @relation("doc_owner")
+  doc_reviewed               ict_doc[]                 @relation("doc_reviewer")
+  doc_versions               ict_doc_version[]
+  doc_shares                 ict_doc_share[]           @relation("doc_share_user")
+  doc_share_created          ict_doc_share[]           @relation("doc_share_creator")
+  doc_todos                  ict_doc_todo[]
+  doc_approval_requested     ict_doc_approval[]
+  doc_approval_steps         ict_doc_approval_step[]
+  doc_read_receipts          ict_doc_read_receipt[]
+  pm_issue_assigned          ict_pm_issue[]            @relation("pm_issue_assignee")
+  pm_issue_resolved          ict_pm_issue[]            @relation("pm_issue_resolver")
+  pm_issue_created           ict_pm_issue[]            @relation("pm_issue_creator")
+  form_request_requested     ict_form_request[]        @relation("form_request_requester")
+  form_request_assigned      ict_form_request[]        @relation("form_request_assignee")
+  form_request_approved      ict_form_request[]        @relation("form_request_approver")
+  owned_assets               ict_asset[]
+  assigned_assets            ict_asset_assignment[]    @relation("assignment_assignee")
+  asset_assigner             ict_asset_assignment[]    @relation("assignment_assigner")
+  dash_layouts               ict_dash_layout[]
+  dash_bookmarks             ict_dash_bookmark[]
+  risk_assessments           ict_risk_assessment[]
+  risk_treatments            ict_risk_treatment[]
+  pm_schedules               ict_pm_schedule[]
+  pm_checklists              ict_pm_checklist[]
+  pm_calendar_events         ict_pm_calendar_event[]
+  incident_users             ict_incident_user[]
+  form_fulfillments          ict_form_fulfillment[]
+  capa_assigned              ict_capa[]                @relation("capa_assignee")
+  capa_verified              ict_capa[]                @relation("capa_verifier")
+  capa_actions               ict_capa_action[]
+  soa_reviewed               ict_comp_soa[]
+  audit_programs             ict_audit_program[]
+  audit_conducted            ict_audit[]
+  audit_findings_assigned    ict_audit_finding[]       @relation("audit_assignee")
+  audit_findings_verified    ict_audit_finding[]       @relation("audit_verifier")
+  quality_objectives         ict_quality_objective[]
+  supplier_evaluations       ict_supplier_evaluation[]
+  training_records           ict_training_record[]
+  customer_feedback_assigned ict_customer_feedback[]
+  mgmt_review_outputs        ict_mgmt_review_output[]
+  ictCapaVerifications       ict_capa_verification[]
+  pm_wifi_checks             ict_pm_wifi_check[]
+  pm_vicon_checks            ict_pm_vicon_check[]
+  pm_store_checks            ict_pm_store_check[]
+  pm_warehouse_checks        ict_pm_warehouse_check[]
+  pm_production_checks       ict_pm_production_check[]
+
+  @@unique([company_id, username])
+}
+
+model dat_user_company {
+  id         String               @id @default(uuid())
+  user_id    String
+  company_id String
+  is_active  Boolean              @default(false)
+  created_at DateTime             @default(now())
+  updated_at DateTime             @default(now())
+  user       dat_user             @relation(fields: [user_id], references: [id])
+  company    dat_company          @relation(fields: [company_id], references: [id])
+  privileges dat_user_privilege[]
+
+  @@unique([user_id, company_id])
+}
+
+model dat_user_location {
+  id               String            @id @default(uuid())
+  user_id          String
+  location_type_id String
+  is_active        Boolean           @default(false)
+  created_at       DateTime          @default(now())
+  updated_at       DateTime          @default(now())
+  user             dat_user          @relation(fields: [user_id], references: [id])
+  location_type    dat_location_type @relation(fields: [location_type_id], references: [id])
+
+  @@unique([user_id, location_type_id])
+}
+
+model dat_user_privilege {
+  id              String           @id @default(uuid())
+  user_company_id String
+  module_id       String
+  level           action_type      @default(hide)
+  created_at      DateTime         @default(now())
+  updated_at      DateTime         @default(now())
+  user_company    dat_user_company @relation(fields: [user_company_id], references: [id])
+  module          dat_module       @relation(fields: [module_id], references: [id])
+
+  @@unique([user_company_id, module_id])
+}
+
+model dat_user_session {
+  id         String   @id @default(uuid())
+  user_id    String
+  token      String   @unique
+  ip_address String?
+  user_agent String?
+  created_at DateTime @default(now())
+  expires_at DateTime
+  user       dat_user @relation(fields: [user_id], references: [id])
+}
+
+model dat_user_action {
+  id          String   @id @default(uuid())
+  user_id     String
+  company_id  String?
+  module_code String?
+  action      String
+  path        String
+  ip_address  String?
+  user_agent  String?
+  created_at  DateTime @default(now())
+
+  @@index([user_id])
+  @@index([company_id])
+}

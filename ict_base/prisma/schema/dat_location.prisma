@@ -1,0 +1,128 @@
+enum location_status {
+  active
+  inactive
+  maintenance
+  closed
+}
+
+model dat_location_type {
+  id          String              @id @default(uuid())
+  company_id  String
+  parent_id   String?
+  code        String
+  name        String
+  description String?
+  icon        String?
+  color       String?
+  is_active   Boolean             @default(true)
+  created_at  DateTime            @default(now())
+  updated_at  DateTime            @default(now())
+  company     dat_company         @relation(fields: [company_id], references: [id])
+  parent      dat_location_type?  @relation("type_hierarchy", fields: [parent_id], references: [id])
+  children    dat_location_type[] @relation("type_hierarchy")
+  users       dat_user_location[]
+  locations   dat_location[]
+
+  @@unique([company_id, code])
+  @@index([company_id])
+  @@index([parent_id])
+}
+
+model dat_location {
+  id                   String                    @id @default(uuid())
+  company_id           String
+  location_type_id     String
+  parent_id            String?
+  code                 String
+  name                 String
+  description          String?
+  address              String?
+  city                 String?
+  province             String?
+  country              String                    @default("Indonesia")
+  postal_code          String?
+  latitude             Decimal?
+  longitude            Decimal?
+  phone                String?
+  email                String?
+  timezone             String?                   @default("Asia/Jakarta")
+  status               location_status           @default(active)
+  is_active            Boolean                   @default(true)
+  metadata             Json?
+  created_at           DateTime                  @default(now())
+  updated_at           DateTime                  @default(now())
+  company              dat_company               @relation(fields: [company_id], references: [id])
+  location_type        dat_location_type         @relation(fields: [location_type_id], references: [id])
+  parent               dat_location?             @relation("location_hierarchy", fields: [parent_id], references: [id])
+  children             dat_location[]            @relation("location_hierarchy")
+  detail               dat_location_detail?
+  contacts             dat_location_contact[]
+  assets               dat_location_asset[]
+  pm_rooms             ict_pm_room[]
+  store_info           ict_store_info?
+  pm_store_checks      ict_pm_store_check[]
+  pm_warehouse_checks  ict_pm_warehouse_check[]
+  pm_production_checks ict_pm_production_check[]
+
+  @@unique([company_id, code])
+  @@index([company_id])
+  @@index([location_type_id])
+  @@index([parent_id])
+}
+
+model dat_location_detail {
+  id                   String       @id @default(uuid())
+  location_id          String
+  detail_type          String
+  capacity             Int?
+  power_capacity       String?
+  cooling_type         String?
+  floor_area           Decimal?
+  floor_level          String?
+  rack_count           Int?
+  operating_hours      String?
+  security_level       String?
+  has_generator        Boolean      @default(false)
+  has_ups              Boolean      @default(false)
+  has_fire_suppression Boolean      @default(false)
+  has_cctv             Boolean      @default(false)
+  has_access_control   Boolean      @default(false)
+  contact_person       String?
+  contact_phone        String?
+  contact_email        String?
+  created_at           DateTime     @default(now())
+  updated_at           DateTime     @default(now())
+  location             dat_location @relation(fields: [location_id], references: [id], onDelete: Cascade)
+
+  @@unique([location_id])
+}
+
+model dat_location_contact {
+  id          String       @id @default(uuid())
+  location_id String
+  name        String
+  role        String
+  phone       String?
+  email       String?
+  is_primary  Boolean      @default(false)
+  is_active   Boolean      @default(true)
+  created_at  DateTime     @default(now())
+  updated_at  DateTime     @default(now())
+  location    dat_location @relation(fields: [location_id], references: [id], onDelete: Cascade)
+
+  @@unique([location_id, name])
+}
+
+model dat_location_asset {
+  id            String       @id @default(uuid())
+  location_id   String
+  asset_id      String
+  rack_position String?
+  port          String?
+  install_date  DateTime?
+  notes         String?
+  created_at    DateTime     @default(now())
+  location      dat_location @relation(fields: [location_id], references: [id], onDelete: Cascade)
+
+  @@unique([location_id, asset_id])
+}

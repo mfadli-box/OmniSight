@@ -1,0 +1,43 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "read": {
+      "*": "allow",
+      "ict_docs/config/**": "deny",
+      "ict_docs/history/**": "deny",
+      "ict_docs/media/**": "deny",
+    },
+    "edit": {
+      "ict_docs/config/**": "deny",
+      "ict_docs/history/**": "deny",
+      "ict_docs/media/**": "deny",
+    },
+    "glob": {
+      "ict_docs/config/**": "deny",
+      "ict_docs/history/**": "deny",
+      "ict_docs/media/**": "deny",
+    },
+    "grep": {
+      "ict_docs/config/**": "deny",
+      "ict_docs/history/**": "deny",
+      "ict_docs/media/**": "deny",
+    },
+    "bash": {
+      "cat *ict_docs/config*": "deny",
+      "cat *ict_docs/history*": "deny",
+      "cat *ict_docs/media*": "deny",
+      "ls *ict_docs/config/*": "deny",
+      "ls *ict_docs/history/*": "deny",
+      "ls *ict_docs/media/*": "deny",
+      "dir *ict_docs/config/*": "deny",
+      "dir *ict_docs/history/*": "deny",
+      "dir *ict_docs/media/*": "deny",
+      "Get-ChildItem *ict_docs/config/*": "deny",
+      "Get-ChildItem *ict_docs/history/*": "deny",
+      "Get-ChildItem *ict_docs/media/*": "deny",
+      "type *ict_docs/config/*": "deny",
+      "type *ict_docs/history/*": "deny",
+      "type *ict_docs/media/*": "deny"
+    }
+  }
+}

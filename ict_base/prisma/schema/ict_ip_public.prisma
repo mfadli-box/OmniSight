@@ -1,0 +1,108 @@
+enum ip_block_status {
+  active
+  reserved
+  available
+  expired
+}
+
+enum ip_allocation_status {
+  assigned
+  available
+  reserved
+  deprecated
+  quarantined
+}
+
+enum allocation_type {
+  static
+  dynamic
+  nat
+  vpn
+  reserved
+}
+
+model ict_ip_block {
+  id                String              @id @default(uuid())
+  company_id        String
+  cidr              String
+  total_ips         Int
+  used_ips          Int?
+  asn               String?
+  isp               String?
+  registry          String?
+  country_code      String?
+  announcement_date DateTime?
+  expiry_date       DateTime?
+  bgp_as_path       String?
+  description       String?
+  status            ip_block_status     @default(active)
+  is_active         Boolean             @default(true)
+  created_at        DateTime            @default(now())
+  updated_at        DateTime            @default(now())
+  allocations       ict_ip_allocation[]
+
+  @@unique([company_id, cidr])
+  @@index([company_id])
+  @@index([cidr])
+  @@index([asn])
+  @@index([status])
+}
+
+model ict_ip_allocation {
+  id              String               @id @default(uuid())
+  block_id        String
+  company_id      String
+  ip_address      String
+  vlan_id         String?
+  subnet_id       String?
+  asset_id        String?
+  domain_id       String?
+  allocation_type allocation_type      @default(static)
+  purpose         String?
+  description     String?
+  assigned_to     String?
+  assigned_at     DateTime?
+  expires_at      DateTime?
+  status          ip_allocation_status @default(assigned)
+  is_active       Boolean              @default(true)
+  created_at      DateTime             @default(now())
+  updated_at      DateTime             @default(now())
+  block           ict_ip_block         @relation(fields: [block_id], references: [id], onDelete: Cascade)
+  vlan            ict_network_vlan?    @relation(fields: [vlan_id], references: [id])
+  subnet          ict_network_subnet?  @relation(fields: [subnet_id], references: [id])
+
+  @@unique([block_id, ip_address])
+  @@index([block_id])
+  @@index([ip_address])
+  @@index([vlan_id])
+  @@index([asset_id])
+  @@index([domain_id])
+  @@index([status])
+}
+
+model ict_ip_nat_mapping {
+  id            String           @id @default(uuid())
+  company_id    String
+  name          String
+  description   String?
+  public_ip     String
+  public_port   Int?
+  private_ip    String
+  private_port  Int?
+  protocol      String           @default("tcp")
+  asset_id      String?
+  nat_id        String?
+  interface     String?
+  is_persistent Boolean          @default(false)
+  is_active     Boolean          @default(true)
+  created_at    DateTime         @default(now())
+  updated_at    DateTime         @default(now())
+  nat_rule      ict_network_nat? @relation(fields: [nat_id], references: [id])
+
+  @@unique([company_id, public_ip, public_port, private_ip, private_port])
+  @@index([company_id])
+  @@index([public_ip])
+  @@index([private_ip])
+  @@index([nat_id])
+  @@index([asset_id])
+}

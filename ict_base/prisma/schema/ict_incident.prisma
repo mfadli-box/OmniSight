@@ -1,0 +1,92 @@
+enum incident_priority {
+  p1
+  p2
+  p3
+  p4
+}
+
+enum incident_status {
+  detected
+  triaged
+  contained
+  eradicated
+  recovered
+  closed
+}
+
+model ict_incident_type {
+  id               String            @id @default(uuid())
+  company_id       String
+  code             String
+  name             String
+  description      String?
+  default_priority incident_priority @default(p3)
+  is_active        Boolean           @default(true)
+  created_at       DateTime          @default(now())
+  incidents        ict_incident[]
+
+  @@unique([company_id, code])
+}
+
+model ict_incident {
+  id                    String               @id @default(uuid())
+  company_id            String
+  type_id               String
+  code                  String
+  title                 String
+  description           String
+  severity              severity_level
+  priority              incident_priority    @default(p3)
+  status                incident_status      @default(detected)
+  detection_source      String?
+  siem_alert_id         String?
+  reported_by           String
+  assigned_to           String?
+  sla_deadline          DateTime?
+  affected_users_count  Int?
+  data_compromised      Boolean              @default(false)
+  data_type_compromised String?
+  root_cause            String?
+  lessons_learned       String?
+  started_at            DateTime
+  detected_at           DateTime
+  contained_at          DateTime?
+  eradicated_at         DateTime?
+  recovered_at          DateTime?
+  closed_at             DateTime?
+  created_at            DateTime             @default(now())
+  updated_at            DateTime             @default(now())
+  incident_type         ict_incident_type    @relation(fields: [type_id], references: [id])
+  assets                ict_incident_asset[]
+  users                 ict_incident_user[]
+
+  @@unique([company_id, code])
+  @@index([company_id])
+  @@index([status])
+  @@index([severity])
+  @@index([priority])
+}
+
+model ict_incident_asset {
+  id                 String       @id @default(uuid())
+  incident_id        String
+  asset_id           String
+  impact_description String?
+  created_at         DateTime     @default(now())
+  incident           ict_incident @relation(fields: [incident_id], references: [id], onDelete: Cascade)
+  asset              ict_asset    @relation(fields: [asset_id], references: [id])
+
+  @@unique([incident_id, asset_id])
+}
+
+model ict_incident_user {
+  id          String       @id @default(uuid())
+  incident_id String
+  user_id     String
+  role        String
+  created_at  DateTime     @default(now())
+  incident    ict_incident @relation(fields: [incident_id], references: [id], onDelete: Cascade)
+  user        dat_user     @relation(fields: [user_id], references: [id])
+
+  @@unique([incident_id, user_id, role])
+}

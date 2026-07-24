@@ -1,0 +1,194 @@
+enum form_approval {
+  none
+  single
+  multi
+  manager
+  custom
+}
+
+enum form_priority {
+  low
+  medium
+  high
+  urgent
+}
+
+enum form_status {
+  draft
+  submitted
+  approved
+  rejected
+  in_progress
+  fulfilled
+  closed
+  cancelled
+}
+
+model ict_form_category {
+  id          String              @id @default(uuid())
+  company_id  String
+  parent_id   String?
+  code        String
+  name        String
+  description String?
+  icon        String?
+  sort_order  Int                 @default(0)
+  is_active   Boolean             @default(true)
+  created_at  DateTime            @default(now())
+  updated_at  DateTime            @default(now())
+  parent      ict_form_category?  @relation("sr_category_hierarchy", fields: [parent_id], references: [id])
+  children    ict_form_category[] @relation("sr_category_hierarchy")
+  services    ict_form_service[]
+
+  @@unique([company_id, code])
+}
+
+model ict_form_service {
+  id             String             @id @default(uuid())
+  company_id     String
+  category_id    String
+  code           String
+  name           String
+  description    String?
+  form_schema    Json
+  approval_type  form_approval      @default(none)
+  sla_hours      Int?
+  estimated_cost Decimal?
+  required_role  String?
+  is_active      Boolean            @default(true)
+  created_at     DateTime           @default(now())
+  updated_at     DateTime           @default(now())
+  category       ict_form_category  @relation(fields: [category_id], references: [id])
+  requests       ict_form_request[]
+
+  @@unique([company_id, code])
+  @@index([company_id])
+  @@index([category_id])
+}
+
+model ict_form_request {
+  id               String                    @id @default(uuid())
+  company_id       String
+  service_id       String
+  requester_id     String
+  code             String
+  title            String
+  description      String?
+  form_data        Json
+  priority         form_priority             @default(medium)
+  status           form_status               @default(draft)
+  assigned_to      String?
+  approved_by      String?
+  approved_at      DateTime?
+  reject_reason    String?
+  fulfilled_at     DateTime?
+  closed_at        DateTime?
+  feedback_rating  Int?
+  feedback_comment String?
+  due_date         DateTime?
+  started_at       DateTime?
+  created_at       DateTime                  @default(now())
+  updated_at       DateTime                  @default(now())
+  service          ict_form_service          @relation(fields: [service_id], references: [id])
+  requester        dat_user                  @relation("form_request_requester", fields: [requester_id], references: [id])
+  assignee         dat_user?                 @relation("form_request_assignee", fields: [assigned_to], references: [id])
+  approver         dat_user?                 @relation("form_request_approver", fields: [approved_by], references: [id])
+  asset_requests   ict_form_asset_request[]
+  server_requests  ict_form_server_request[]
+  access_requests  ict_form_access_request[]
+  app_requests     ict_form_app_request[]
+  fulfillments     ict_form_fulfillment[]
+
+  @@unique([company_id, code])
+  @@index([company_id])
+  @@index([requester_id])
+  @@index([assigned_to])
+  @@index([status])
+  @@index([service_id])
+  @@index([created_at])
+}
+
+model ict_form_asset_request {
+  id              String           @id @default(uuid())
+  request_id      String
+  asset_type      String
+  brand           String?
+  specification   String?
+  quantity        Int              @default(1)
+  estimated_price Decimal?
+  justification   String?
+  created_at      DateTime         @default(now())
+  request         ict_form_request @relation(fields: [request_id], references: [id], onDelete: Cascade)
+
+  @@index([request_id])
+}
+
+model ict_form_server_request {
+  id              String           @id @default(uuid())
+  request_id      String
+  server_type     String
+  os_type         String
+  os_version      String?
+  cpu_cores       Int
+  ram_gb          Int
+  storage_gb      Int
+  storage_type    String?
+  purpose         String?
+  software_needed String?
+  estimated_cost  Decimal?
+  created_at      DateTime         @default(now())
+  request         ict_form_request @relation(fields: [request_id], references: [id], onDelete: Cascade)
+
+  @@index([request_id])
+}
+
+model ict_form_access_request {
+  id                 String           @id @default(uuid())
+  request_id         String
+  access_type        String
+  target_system      String
+  target_host        String?
+  target_port        Int?
+  target_database    String?
+  target_application String?
+  access_level       String
+  duration_type      String
+  duration_days      Int?
+  justification      String?
+  created_at         DateTime         @default(now())
+  request            ict_form_request @relation(fields: [request_id], references: [id], onDelete: Cascade)
+
+  @@index([request_id])
+}
+
+model ict_form_app_request {
+  id                   String           @id @default(uuid())
+  request_id           String
+  app_type             String
+  app_name             String
+  app_description      String?
+  business_requirement String?
+  target_users         String?
+  estimated_timeline   String?
+  budget_code          String?
+  priority_level       String?
+  created_at           DateTime         @default(now())
+  request              ict_form_request @relation(fields: [request_id], references: [id], onDelete: Cascade)
+
+  @@index([request_id])
+}
+
+model ict_form_fulfillment {
+  id               String           @id @default(uuid())
+  request_id       String
+  user_id          String
+  action           String
+  note             String?
+  attachment_url   String?
+  duration_minutes Int?
+  created_at       DateTime         @default(now())
+  request          ict_form_request @relation(fields: [request_id], references: [id], onDelete: Cascade)
+  user             dat_user         @relation(fields: [user_id], references: [id])
+
+  @@index([request_id])
+}

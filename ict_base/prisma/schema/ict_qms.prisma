@@ -1,0 +1,259 @@
+enum objective_status {
+  on_track
+  at_risk
+  behind
+  achieved
+  cancelled
+}
+
+enum supplier_status {
+  active
+  inactive
+  suspended
+  blacklisted
+}
+
+enum supplier_rating {
+  excellent
+  good
+  satisfactory
+  poor
+  unacceptable
+}
+
+enum training_status {
+  planned
+  in_progress
+  completed
+  cancelled
+}
+
+enum training_type {
+  onboarding
+  refresher
+  compliance
+  technical
+  safety
+  awareness
+  certification
+}
+
+enum calibration_status {
+  due
+  in_progress
+  completed
+  overdue
+  out_of_tolerance
+}
+
+model ict_quality_objective {
+  id               String            @id @default(uuid())
+  company_id       String
+  code             String
+  title            String
+  description      String
+  department       String?
+  owner_id         String?
+  target_value     Decimal?
+  current_value    Decimal?
+  unit             String?
+  target_date      DateTime?
+  status           objective_status  @default(on_track)
+  review_frequency String?
+  last_review_date DateTime?
+  next_review_date DateTime?
+  created_at       DateTime          @default(now())
+  updated_at       DateTime          @default(now())
+  owner            dat_user?         @relation(fields: [owner_id], references: [id])
+  kpis             ict_quality_kpi[]
+
+  @@unique([company_id, code])
+  @@index([company_id])
+  @@index([status])
+  @@index([department])
+}
+
+model ict_quality_kpi {
+  id                 String                @id @default(uuid())
+  objective_id       String
+  name               String
+  target_value       Decimal
+  current_value      Decimal?
+  unit               String?
+  measurement_period String?
+  last_measured_at   DateTime?
+  created_at         DateTime              @default(now())
+  updated_at         DateTime              @default(now())
+  objective          ict_quality_objective @relation(fields: [objective_id], references: [id], onDelete: Cascade)
+
+  @@index([objective_id])
+}
+
+model ict_supplier {
+  id                   String                    @id @default(uuid())
+  company_id           String
+  code                 String
+  name                 String
+  contact_name         String?
+  contact_email        String?
+  contact_phone        String?
+  address              String?
+  website              String?
+  category             String
+  status               supplier_status           @default(active)
+  rating               supplier_rating?
+  last_evaluation_date DateTime?
+  next_evaluation_date DateTime?
+  is_critical          Boolean                   @default(false)
+  contract_start       DateTime?
+  contract_end         DateTime?
+  created_at           DateTime                  @default(now())
+  updated_at           DateTime                  @default(now())
+  evaluations          ict_supplier_evaluation[]
+  assets               ict_asset[]
+
+  @@unique([company_id, code])
+  @@index([company_id])
+  @@index([status])
+  @@index([category])
+}
+
+model ict_supplier_evaluation {
+  id                   String          @id @default(uuid())
+  supplier_id          String
+  company_id           String
+  evaluation_date      DateTime
+  evaluator_id         String
+  quality_score        Decimal?
+  delivery_score       Decimal?
+  price_score          Decimal?
+  service_score        Decimal?
+  overall_score        Decimal?
+  rating               supplier_rating
+  strengths            String?
+  weaknesses           String?
+  improvement_plan     String?
+  next_evaluation_date DateTime?
+  created_at           DateTime        @default(now())
+  updated_at           DateTime        @default(now())
+  supplier             ict_supplier    @relation(fields: [supplier_id], references: [id])
+  evaluator            dat_user        @relation(fields: [evaluator_id], references: [id])
+
+  @@index([supplier_id])
+  @@index([company_id])
+  @@index([evaluation_date])
+}
+
+model ict_training_program {
+  id              String                @id @default(uuid())
+  company_id      String
+  code            String
+  title           String
+  description     String?
+  training_type   training_type         @default(compliance)
+  duration_hours  Decimal?
+  provider        String?
+  is_mandatory    Boolean               @default(false)
+  validity_months Int?
+  is_active       Boolean               @default(true)
+  created_at      DateTime              @default(now())
+  updated_at      DateTime              @default(now())
+  records         ict_training_record[]
+
+  @@unique([company_id, code])
+  @@index([company_id])
+  @@index([training_type])
+  @@index([is_mandatory])
+}
+
+model ict_training_record {
+  id              String               @id @default(uuid())
+  program_id      String
+  user_id         String
+  company_id      String
+  training_date   DateTime
+  completion_date DateTime?
+  status          training_status      @default(planned)
+  score           Decimal?
+  passed          Boolean?
+  certificate_url String?
+  expiry_date     DateTime?
+  notes           String?
+  created_at      DateTime             @default(now())
+  updated_at      DateTime             @default(now())
+  program         ict_training_program @relation(fields: [program_id], references: [id])
+  user            dat_user             @relation(fields: [user_id], references: [id])
+
+  @@unique([program_id, user_id, training_date])
+  @@index([program_id])
+  @@index([user_id])
+  @@index([company_id])
+  @@index([status])
+  @@index([expiry_date])
+}
+
+model ict_calibration_asset {
+  id                          String                   @id @default(uuid())
+  company_id                  String
+  asset_id                    String
+  calibration_date            DateTime
+  next_calibration_date       DateTime
+  calibration_interval_months Int                      @default(12)
+  status                      calibration_status       @default(due)
+  certificate_number          String?
+  calibrated_by               String?
+  certificate_url             String?
+  last_result                 String?
+  tolerance                   String?
+  notes                       String?
+  created_at                  DateTime                 @default(now())
+  updated_at                  DateTime                 @default(now())
+  asset                       ict_asset                @relation(fields: [asset_id], references: [id])
+  records                     ict_calibration_record[]
+
+  @@unique([asset_id])
+  @@index([company_id])
+  @@index([status])
+  @@index([next_calibration_date])
+}
+
+model ict_calibration_record {
+  id                   String                @id @default(uuid())
+  calibration_asset_id String
+  calibration_date     DateTime
+  performed_by         String?
+  result               String
+  is_within_tolerance  Boolean
+  certificate_number   String?
+  certificate_url      String?
+  notes                String?
+  created_at           DateTime              @default(now())
+  calibration_asset    ict_calibration_asset @relation(fields: [calibration_asset_id], references: [id])
+
+  @@index([calibration_asset_id])
+  @@index([calibration_date])
+}
+
+model ict_customer_feedback {
+  id             String    @id @default(uuid())
+  company_id     String
+  source_type    String
+  customer_name  String?
+  customer_email String?
+  subject        String
+  description    String
+  rating         Int?
+  category       String?
+  status         String    @default("new")
+  assigned_to    String?
+  response       String?
+  responded_at   DateTime?
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @default(now())
+  assignee       dat_user? @relation(fields: [assigned_to], references: [id])
+
+  @@index([company_id])
+  @@index([status])
+  @@index([source_type])
+  @@index([created_at])
+}

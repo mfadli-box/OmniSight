@@ -1,0 +1,319 @@
+enum host_connection {
+  socket
+  tcp
+}
+
+enum host_status {
+  connected
+  disconnected
+  error
+}
+
+enum container_status {
+  running
+  stopped
+  paused
+  restarting
+  created
+  removed
+}
+
+enum compose_status {
+  running
+  stopped
+  error
+  partial
+}
+
+model ict_docker_host {
+  id              String                      @id @default(uuid())
+  company_id      String
+  location_id     String?
+  name            String
+  hostname        String
+  port            Int                         @default(2375)
+  use_tls         Boolean                     @default(false)
+  tls_cert_path   String?
+  socket_path     String?
+  connection_type host_connection             @default(tcp)
+  status          host_status                 @default(disconnected)
+  last_seen_at    DateTime?
+  os_type         String?
+  os_version      String?
+  docker_version  String?
+  cpu_count       Int?
+  memory_total    BigInt?
+  disk_total      BigInt?
+  is_active       Boolean                     @default(true)
+  created_at      DateTime                    @default(now())
+  updated_at      DateTime                    @default(now())
+  containers      ict_docker_container[]
+  images          ict_docker_image[]
+  networks        ict_docker_network[]
+  volumes         ict_docker_volume[]
+  compose_stacks  ict_docker_compose[]
+  stats           ict_docker_host_stats[]
+  pull_logs       ict_docker_image_pull_log[]
+  container_stats ict_docker_stats[]
+
+  @@unique([company_id, name])
+  @@index([company_id])
+  @@index([status])
+}
+
+model ict_docker_container {
+  id                String                         @id @default(uuid())
+  host_id           String
+  company_id        String
+  container_id      String
+  name              String
+  image             String
+  image_id          String
+  status            container_status               @default(created)
+  state             String
+  created_at_docker DateTime
+  started_at        DateTime?
+  finished_at       DateTime?
+  restart_count     Int                            @default(0)
+  platform          String?
+  pid               Int?
+  exit_code         Int?
+  compose_stack     String?
+  compose_service   String?
+  labels            Json?
+  created_at        DateTime                       @default(now())
+  updated_at        DateTime                       @default(now())
+  host              ict_docker_host                @relation(fields: [host_id], references: [id])
+  ports             ict_docker_container_port[]
+  env_vars          ict_docker_container_env[]
+  mounts            ict_docker_container_mount[]
+  networks          ict_docker_container_network[]
+  stats             ict_docker_stats[]
+  compose_services  ict_docker_compose_service[]
+
+  @@unique([host_id, container_id])
+  @@index([host_id])
+  @@index([company_id])
+  @@index([status])
+  @@index([compose_stack])
+}
+
+model ict_docker_container_port {
+  id           String               @id @default(uuid())
+  container_id String
+  private_port Int
+  public_port  Int?
+  protocol     String
+  ip           String?
+  created_at   DateTime             @default(now())
+  container    ict_docker_container @relation(fields: [container_id], references: [id], onDelete: Cascade)
+
+  @@unique([container_id, private_port, protocol])
+  @@index([container_id])
+}
+
+model ict_docker_container_env {
+  id           String               @id @default(uuid())
+  container_id String
+  key          String
+  value        String
+  is_secret    Boolean              @default(false)
+  created_at   DateTime             @default(now())
+  container    ict_docker_container @relation(fields: [container_id], references: [id], onDelete: Cascade)
+
+  @@unique([container_id, key])
+  @@index([container_id])
+}
+
+model ict_docker_container_mount {
+  id           String               @id @default(uuid())
+  container_id String
+  source       String
+  destination  String
+  type         String
+  mode         String?
+  created_at   DateTime             @default(now())
+  container    ict_docker_container @relation(fields: [container_id], references: [id], onDelete: Cascade)
+
+  @@index([container_id])
+}
+
+model ict_docker_container_network {
+  id           String               @id @default(uuid())
+  container_id String
+  network_id   String
+  ip_address   String?
+  gateway      String?
+  mac_address  String?
+  created_at   DateTime             @default(now())
+  container    ict_docker_container @relation(fields: [container_id], references: [id], onDelete: Cascade)
+  network      ict_docker_network   @relation(fields: [network_id], references: [id])
+
+  @@unique([container_id, network_id])
+  @@index([container_id])
+  @@index([network_id])
+}
+
+model ict_docker_image {
+  id                String          @id @default(uuid())
+  host_id           String
+  image_id          String
+  repository        String
+  tag               String
+  size              BigInt
+  created_at_docker DateTime
+  container_count   Int             @default(0)
+  is_dangling       Boolean         @default(false)
+  created_at        DateTime        @default(now())
+  updated_at        DateTime        @default(now())
+  host              ict_docker_host @relation(fields: [host_id], references: [id])
+
+  @@unique([host_id, image_id])
+  @@index([host_id])
+  @@index([repository])
+}
+
+model ict_docker_network {
+  id                 String                         @id @default(uuid())
+  host_id            String
+  network_id         String
+  name               String
+  driver             String
+  scope              String
+  subnet             String?
+  gateway            String?
+  ip_range           String?
+  is_internal        Boolean                        @default(false)
+  container_count    Int                            @default(0)
+  created_at_docker  DateTime
+  created_at         DateTime                       @default(now())
+  updated_at         DateTime                       @default(now())
+  host               ict_docker_host                @relation(fields: [host_id], references: [id])
+  container_networks ict_docker_container_network[]
+
+  @@unique([host_id, network_id])
+  @@index([host_id])
+}
+
+model ict_docker_volume {
+  id                String          @id @default(uuid())
+  host_id           String
+  volume_id         String
+  name              String
+  driver            String
+  mountpoint        String
+  scope             String
+  labels            Json?
+  options           Json?
+  container_count   Int             @default(0)
+  size              BigInt?
+  created_at_docker DateTime
+  created_at        DateTime        @default(now())
+  updated_at        DateTime        @default(now())
+  host              ict_docker_host @relation(fields: [host_id], references: [id])
+
+  @@unique([host_id, volume_id])
+  @@index([host_id])
+}
+
+model ict_docker_compose {
+  id               String                       @id @default(uuid())
+  host_id          String
+  company_id       String
+  name             String
+  status           compose_status               @default(stopped)
+  compose_content  String
+  env_content      String?
+  workdir          String?
+  project_name     String?
+  service_count    Int                          @default(0)
+  running_count    Int                          @default(0)
+  last_deployed_at DateTime?
+  last_action_by   String?
+  created_at       DateTime                     @default(now())
+  updated_at       DateTime                     @default(now())
+  host             ict_docker_host              @relation(fields: [host_id], references: [id])
+  services         ict_docker_compose_service[]
+
+  @@unique([host_id, name])
+  @@index([host_id])
+  @@index([company_id])
+  @@index([status])
+}
+
+model ict_docker_compose_service {
+  id           String                @id @default(uuid())
+  compose_id   String
+  container_id String?
+  name         String
+  image        String
+  status       container_status      @default(created)
+  replicas     Int                   @default(1)
+  created_at   DateTime              @default(now())
+  updated_at   DateTime              @default(now())
+  compose      ict_docker_compose    @relation(fields: [compose_id], references: [id])
+  container    ict_docker_container? @relation(fields: [container_id], references: [id])
+
+  @@unique([compose_id, name])
+  @@index([compose_id])
+}
+
+model ict_docker_stats {
+  id             String               @id @default(uuid())
+  container_id   String
+  host_id        String
+  timestamp      DateTime
+  cpu_percent    Decimal
+  memory_usage   BigInt
+  memory_limit   BigInt
+  memory_percent Decimal
+  network_rx     BigInt
+  network_tx     BigInt
+  block_read     BigInt
+  block_write    BigInt
+  pids           Int
+  created_at     DateTime             @default(now())
+  container      ict_docker_container @relation(fields: [container_id], references: [id])
+  host           ict_docker_host      @relation(fields: [host_id], references: [id])
+
+  @@index([container_id, timestamp])
+  @@index([host_id, timestamp])
+  @@index([timestamp])
+}
+
+model ict_docker_host_stats {
+  id             String          @id @default(uuid())
+  host_id        String
+  timestamp      DateTime
+  cpu_percent    Decimal
+  memory_usage   BigInt
+  memory_limit   BigInt
+  memory_percent Decimal
+  disk_usage     BigInt
+  disk_total     BigInt
+  disk_percent   Decimal
+  network_rx     BigInt
+  network_tx     BigInt
+  load_avg_1     Decimal?
+  load_avg_5     Decimal?
+  load_avg_15    Decimal?
+  created_at     DateTime        @default(now())
+  host           ict_docker_host @relation(fields: [host_id], references: [id])
+
+  @@index([host_id, timestamp])
+  @@index([timestamp])
+}
+
+model ict_docker_image_pull_log {
+  id            String          @id @default(uuid())
+  host_id       String
+  image_name    String
+  status        String
+  pulled_by     String?
+  error_message String?
+  duration_ms   Int?
+  created_at    DateTime        @default(now())
+  host          ict_docker_host @relation(fields: [host_id], references: [id])
+
+  @@index([host_id])
+}

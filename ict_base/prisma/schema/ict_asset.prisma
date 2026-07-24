@@ -1,0 +1,156 @@
+enum asset_criticality {
+  low
+  medium
+  high
+  critical
+}
+
+enum asset_status {
+  active
+  inactive
+  maintenance
+  decommissioned
+  planned
+}
+
+enum assignment_status {
+  assigned
+  returned
+  pending_return
+  lost
+  damaged
+}
+
+enum assignment_condition {
+  excellent
+  good
+  fair
+  poor
+  damaged
+  non_functional
+}
+
+model ict_asset_category {
+  id          String               @id @default(uuid())
+  company_id  String
+  parent_id   String?
+  code        String
+  name        String
+  description String?
+  icon        String?
+  is_active   Boolean              @default(true)
+  created_at  DateTime             @default(now())
+  updated_at  DateTime             @default(now())
+  parent      ict_asset_category?  @relation("category_hierarchy", fields: [parent_id], references: [id])
+  children    ict_asset_category[] @relation("category_hierarchy")
+  assets      ict_asset[]
+
+  @@unique([company_id, code])
+}
+
+model ict_asset {
+  id               String                 @id @default(uuid())
+  company_id       String
+  category_id      String
+  location_id      String?
+  supplier_id      String?
+  code             String
+  name             String
+  description      String?
+  asset_type       String
+  ip_address       String?
+  hostname         String?
+  fqdn             String?
+  os_type          String?
+  os_version       String?
+  manufacturer     String?
+  model            String?
+  serial_number    String?
+  owner_id         String?
+  criticality      asset_criticality      @default(medium)
+  status           asset_status           @default(active)
+  purchase_date    DateTime?
+  warranty_end     DateTime?
+  last_scan_date   DateTime?
+  tags             String[]
+  metadata         Json?
+  created_at       DateTime               @default(now())
+  updated_at       DateTime               @default(now())
+  category         ict_asset_category     @relation(fields: [category_id], references: [id])
+  supplier         ict_supplier?          @relation(fields: [supplier_id], references: [id])
+  owner            dat_user?              @relation(fields: [owner_id], references: [id])
+  ips              ict_asset_ip[]
+  source_relations ict_asset_relation[]   @relation("source_asset")
+  target_relations ict_asset_relation[]   @relation("target_asset")
+  certificates     ict_certificate[]
+  risks            ict_risk[]
+  pm_equipment     ict_pm_equipment[]
+  incident_assets  ict_incident_asset[]
+  vuln_findings    ict_vuln_finding[]
+  siem_alerts      ict_siem_alert[]
+  calibration      ict_calibration_asset?
+  assignments      ict_asset_assignment[]
+
+  @@unique([company_id, code])
+  @@index([company_id])
+  @@index([asset_type])
+  @@index([status])
+  @@index([criticality])
+  @@index([supplier_id])
+}
+
+model ict_asset_ip {
+  id             String    @id @default(uuid())
+  asset_id       String
+  ip_address     String
+  ip_type        String
+  is_primary     Boolean   @default(false)
+  interface_name String?
+  created_at     DateTime  @default(now())
+  asset          ict_asset @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+
+  @@unique([asset_id, ip_address])
+  @@index([ip_address])
+}
+
+model ict_asset_relation {
+  id              String    @id @default(uuid())
+  source_asset_id String
+  target_asset_id String
+  relation_type   String
+  description     String?
+  created_at      DateTime  @default(now())
+  source_asset    ict_asset @relation("source_asset", fields: [source_asset_id], references: [id], onDelete: Cascade)
+  target_asset    ict_asset @relation("target_asset", fields: [target_asset_id], references: [id], onDelete: Cascade)
+
+  @@unique([source_asset_id, target_asset_id, relation_type])
+}
+
+model ict_asset_assignment {
+  id              String                @id @default(uuid())
+  company_id      String
+  asset_id        String
+  assigned_to     String
+  assigned_by     String?
+  assignment_date DateTime              @default(now())
+  expected_return DateTime?
+  actual_return   DateTime?
+  status          assignment_status     @default(assigned)
+  condition_out   assignment_condition  @default(good)
+  condition_in    assignment_condition?
+  checkout_notes  String?
+  return_notes    String?
+  is_active       Boolean               @default(true)
+  created_at      DateTime              @default(now())
+  updated_at      DateTime              @default(now())
+  asset           ict_asset             @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+  assignee        dat_user?             @relation("assignment_assignee", fields: [assigned_to], references: [id])
+  assigner        dat_user?             @relation("assignment_assigner", fields: [assigned_by], references: [id])
+
+  @@unique([asset_id, assigned_to, assignment_date])
+  @@index([company_id])
+  @@index([asset_id])
+  @@index([assigned_to])
+  @@index([status])
+  @@index([assignment_date])
+}

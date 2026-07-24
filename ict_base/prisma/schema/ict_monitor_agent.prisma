@@ -1,0 +1,188 @@
+enum agent_platform {
+  linux
+  windows
+  macos
+  docker
+  network
+}
+
+enum agent_status {
+  online
+  offline
+  error
+  updating
+  deprecated
+}
+
+enum agent_type {
+  siem
+  host_monitor
+  network_poller
+  docker_collector
+  fim
+  combined
+}
+
+model ict_monitor_agent_group {
+  id            String                 @id @default(uuid())
+  company_id    String
+  code          String
+  name          String
+  description   String?
+  platform      agent_platform         @default(linux)
+  config        Json?
+  is_active     Boolean                @default(true)
+  created_at    DateTime               @default(now())
+  updated_at    DateTime               @default(now())
+  agents        ict_monitor_agent[]
+  poller_tasks  ict_monitor_poller_task[]
+
+  @@unique([company_id, code])
+  @@index([company_id])
+}
+
+model ict_monitor_agent {
+  id                 String                  @id @default(uuid())
+  company_id         String
+  group_id           String
+  asset_id           String?
+  hostname           String
+  ip_address         String
+  os_platform        agent_platform          @default(linux)
+  os_version         String?
+  agent_version      String?
+  status             agent_status            @default(offline)
+  agent_type         agent_type              @default(combined)
+  public_key         String?
+  last_heartbeat_at  DateTime?
+  last_config_sync   DateTime?
+  registration_token String?
+  config             Json?
+  tags               String[]
+  is_active          Boolean                 @default(true)
+  created_at         DateTime                @default(now())
+  updated_at         DateTime                @default(now())
+  group              ict_monitor_agent_group @relation(fields: [group_id], references: [id])
+  metrics            ict_monitor_metric_point[]
+  logs               ict_monitor_log_entry[]
+  fim_snapshots      ict_monitor_fim_baseline[]
+  fim_changes        ict_monitor_fim_change[]
+  sca_scans          ict_monitor_sca_scan[]
+
+  @@unique([company_id, hostname, ip_address])
+  @@index([company_id])
+  @@index([group_id])
+  @@index([asset_id])
+  @@index([status])
+  @@index([agent_type])
+  @@index([last_heartbeat_at])
+}
+
+model ict_monitor_poller_task {
+  id               String                    @id @default(uuid())
+  company_id       String
+  group_id         String
+  task_type        String
+  target_entity    String?
+  target_id        String?
+  config           Json?
+  interval_seconds Int                       @default(300)
+  last_run_at      DateTime?
+  next_run_at      DateTime?
+  is_enabled       Boolean                   @default(true)
+  created_at       DateTime                  @default(now())
+  updated_at       DateTime                  @default(now())
+  group            ict_monitor_agent_group   @relation(fields: [group_id], references: [id])
+
+  @@index([company_id])
+  @@index([group_id])
+  @@index([task_type])
+  @@index([next_run_at])
+}
+
+model ict_monitor_network_device {
+  id               String                @id @default(uuid())
+  company_id       String
+  location_id      String?
+  asset_id         String?
+  device_type      String
+  hostname         String
+  ip_address       String
+  snmp_version     String                @default("2c")
+  snmp_community   String?
+  snmp_port        Int                   @default(161)
+  snmp_sysname     String?
+  snmp_sysdesc     String?
+  snmp_sysobjectid String?
+  snmp_uptime      String?
+  mac_address      String?
+  vendor           String?
+  model            String?
+  serial_number    String?
+  os_fingerprint   String?
+  status           String                @default("unknown")
+  last_polled_at   DateTime?
+  is_active        Boolean               @default(true)
+  created_at       DateTime              @default(now())
+  updated_at       DateTime              @default(now())
+  interfaces       ict_monitor_netif_snapshot[]
+  snmp_traps       ict_monitor_snmp_trap[]
+
+  @@unique([company_id, ip_address])
+  @@index([company_id])
+  @@index([location_id])
+  @@index([asset_id])
+  @@index([status])
+  @@index([device_type])
+}
+
+model ict_monitor_netif_snapshot {
+  id               String                     @id @default(uuid())
+  device_id        String
+  company_id       String
+  interface_name   String
+  if_index         Int?
+  if_descr         String?
+  if_type          Int?
+  if_speed         BigInt?
+  if_high_speed    Int?
+  if_admin_status  String?
+  if_oper_status   String?
+  if_phys_address  String?
+  if_alias         String?
+  in_octets        BigInt?
+  out_octets       BigInt?
+  in_errors        BigInt?
+  out_errors       BigInt?
+  in_discards      BigInt?
+  out_discards     BigInt?
+  polled_at        DateTime                   @default(now())
+  device           ict_monitor_network_device @relation(fields: [device_id], references: [id])
+
+  @@index([device_id, polled_at])
+  @@index([company_id])
+  @@index([polled_at])
+}
+
+model ict_monitor_snmp_trap {
+  id            String                     @id @default(uuid())
+  device_id     String
+  company_id    String
+  trap_oid      String
+  trap_name     String?
+  severity      severity_level             @default(info)
+  source_ip     String
+  agent_address String?
+  community     String?
+  uptime        String?
+  variables     Json?
+  raw_message   String?
+  received_at   DateTime                   @default(now())
+  device        ict_monitor_network_device @relation(fields: [device_id], references: [id])
+
+  @@index([device_id, received_at])
+  @@index([company_id])
+  @@index([trap_oid])
+  @@index([received_at])
+  @@index([severity])
+}

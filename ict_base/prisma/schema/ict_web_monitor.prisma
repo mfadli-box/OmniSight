@@ -1,0 +1,54 @@
+model ict_uptimerobot_log {
+  id                  String    @id @default(uuid())
+  incident_id         String    @db.VarChar(100)
+  monitor_id          BigInt
+  monitor_url         String    @db.Text
+  monitor_name        String    @db.VarChar(255)
+  monitor_type        String    @db.VarChar(20)
+  monitor_group       String?   @db.VarChar(255)
+  http_status_code    Int       @default(0)
+  alert_type          Int
+  alert_type_name     String    @db.VarChar(50)
+  alert_region        String?   @db.VarChar(100)
+  alert_location      String?   @db.VarChar(255)
+  alert_details       String?   @db.VarChar(255)
+  alert_duration      Int       @default(0)
+  alert_datetime      DateTime
+  incident_start_time DateTime?
+  incident_end_time   DateTime?
+  response_time       Int       @default(0)
+  created_at          DateTime  @default(now())
+
+  @@index([monitor_id, alert_datetime])
+  @@index([alert_datetime])
+  @@index([incident_id])
+}
+
+model ict_uptimerobot_sum {
+  id                String   @id @default(uuid())
+  date              String   @db.VarChar(10)
+  monitor_id        BigInt
+  monitor_name      String   @db.VarChar(255)
+  monitor_url       String   @db.Text
+  total_checks      BigInt   @default(0)
+  up_count          BigInt   @default(0)
+  down_count        BigInt   @default(0)
+  downtime_seconds  BigInt   @default(0)
+  avg_response_time Decimal  @default(0.0000) @db.Decimal(10, 4)
+  uptime_percentage Decimal  @default(0.00) @db.Decimal(5, 2)
+  last_seen         DateTime @default(now())
+
+  @@unique([date, monitor_id], name: "uq_uptimerobot_sum_composite")
+  @@index([monitor_id])
+}
+
+model ict_uptimerobot_sla {
+  id                String  @id @default(uuid())
+  date              String  @unique @db.VarChar(10)
+  total_checks      BigInt  @default(0)
+  up_count          BigInt  @default(0)
+  down_count        BigInt  @default(0)
+  downtime_seconds  BigInt  @default(0)
+  avg_response_time Decimal @default(0.0000) @db.Decimal(10, 4)
+  overall_uptime    Decimal @default(0.00) @db.Decimal(5, 2)
+}

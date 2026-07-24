@@ -1,0 +1,22 @@
+{
+  "files.exclude": {
+    "ict_docs/config": true,
+    "ict_docs/history": true,
+    "ict_docs/media": true
+  },
+  "search.exclude": {
+    "ict_docs/config": true,
+    "ict_docs/history": true,
+    "ict_docs/media": true
+  },
+  "files.watcherExclude": {
+    "ict_docs/config": true,
+    "ict_docs/history": true,
+    "ict_docs/media": true
+  },
+  "github.copilot.enable": {
+    "ict_docs/config/**": false,
+    "ict_docs/history/**": false,
+    "ict_docs/media/**": false
+  }
+}

@@ -1,0 +1,442 @@
+openapi: 3.0.3
+info:
+  title: OmniSight API - SM03 (Company Management)
+  description: |
+    Endpoint manajemen perusahaan: CRUD perusahaan dan asignasi modul.
+    Bagian dari modul **System Manager (SM)**. Hanya bisa diakses oleh **Admin**.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:36665
+    description: Local Development
+
+tags:
+  - name: SM03
+    description: Company Management (Admin only)
+
+paths:
+  /rest/pages/admin/SM03:
+    get:
+      operationId: listCompany
+      tags: [SM03]
+      summary: Daftar perusahaan
+      description: |
+        Mengambil daftar perusahaan dengan pagination, search, dan sorting.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/SearchParam"
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - $ref: "#/components/parameters/SortByParam"
+        - $ref: "#/components/parameters/SortOrderParam"
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+    post:
+      operationId: createCompany
+      tags: [SM03]
+      summary: Buat perusahaan baru
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompanyCreateRequest"
+            example:
+              code: ACME
+              name: ACME Corporation
+              vat_id: "1234567890"
+              reg_no: "NIB-001"
+              address: "Jl. Sudirman No. 1, Jakarta"
+              valuta: IDR
+              hris_link: ""
+              is_active: true
+      responses:
+        "201":
+          description: Perusahaan berhasil dibuat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: Company created successfully
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /rest/pages/admin/SM03/{id}:
+    put:
+      operationId: updateCompany
+      tags: [SM03]
+      summary: Update perusahaan
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompanyUpdateRequest"
+            example:
+              name: ACME Corporation Updated
+              address: "Jl. Thamrin No. 10, Jakarta"
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: Company updated successfully
+
+  /rest/pages/admin/SM03/module:
+    get:
+      operationId: listModule
+      tags: [SM03]
+      summary: Daftar semua modul
+      description: Mengambil daftar modul untuk asignasi ke perusahaan.
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModuleItemListResponse"
+
+  /rest/pages/admin/SM03/{id}/module:
+    get:
+      operationId: listCompanyModule
+      tags: [SM03]
+      summary: Daftar modul perusahaan
+      description: Mengambil daftar modul yang dimiliki perusahaan tertentu.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyModuleListResponse"
+
+    post:
+      operationId: assignCompanyModule
+      tags: [SM03]
+      summary: Asign modul ke perusahaan
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompanyModuleAssignRequest"
+            example:
+              module_id: "mod-005"
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: Module assigned successfully
+
+  /rest/pages/admin/SM03/{id}/module/{moduleId}:
+    put:
+      operationId: updateCompanyModule
+      tags: [SM03]
+      summary: Update status modul perusahaan
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+        - name: moduleId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompanyModuleUpdateRequest"
+            example:
+              is_active: false
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: Module updated successfully
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    IdParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    SearchParam:
+      name: search
+      in: query
+      schema:
+        type: string
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 1
+    SizeParam:
+      name: size
+      in: query
+      schema:
+        type: integer
+        default: 10
+        maximum: 100
+    SortByParam:
+      name: sort_by
+      in: query
+      schema:
+        type: string
+    SortOrderParam:
+      name: sort_order
+      in: query
+      schema:
+        type: string
+        enum: [asc, desc]
+
+  schemas:
+    CompanyListItem:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        name:
+          type: string
+        vat_id:
+          type: string
+        reg_no:
+          type: string
+        address:
+          type: string
+        valuta:
+          type: string
+        hris_link:
+          type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+
+    CompanyCreateRequest:
+      type: object
+      required: [code, name]
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        vat_id:
+          type: string
+        reg_no:
+          type: string
+        address:
+          type: string
+        valuta:
+          type: string
+        hris_link:
+          type: string
+        is_active:
+          type: boolean
+          default: true
+
+    CompanyUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        vat_id:
+          type: string
+        reg_no:
+          type: string
+        address:
+          type: string
+        valuta:
+          type: string
+        hris_link:
+          type: string
+        is_active:
+          type: boolean
+
+    ModuleItem:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        name:
+          type: string
+        parent_id:
+          type: string
+        is_active:
+          type: boolean
+
+    CompanyModuleItem:
+      type: object
+      properties:
+        id:
+          type: string
+        module_id:
+          type: string
+        code:
+          type: string
+        name:
+          type: string
+        path:
+          type: string
+        is_active:
+          type: boolean
+
+    CompanyModuleAssignRequest:
+      type: object
+      required: [module_id]
+      properties:
+        module_id:
+          type: string
+
+    CompanyModuleUpdateRequest:
+      type: object
+      properties:
+        is_active:
+          type: boolean
+
+    GridMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+        size:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer
+
+    CompanyListResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CompanyListItem"
+        meta:
+          $ref: "#/components/schemas/GridMeta"
+
+    ModuleItemListResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModuleItem"
+
+    CompanyModuleListResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CompanyModuleItem"
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+        error:
+          type: string
+        request_id:
+          type: string
+
+  responses:
+    ValidationError:
+      description: Input tidak valid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: Tidak terautentikasi
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: Akses ditolak
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Resource tidak ditemukan
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Conflict:
+      description: Data duplikat
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"

@@ -1,0 +1,199 @@
+openapi: 3.0.3
+info:
+  title: OmniSight API - SP03 (Action History)
+  description: |
+    Endpoint riwayat aktivitas user (audit trail).
+    Bagian dari modul **Session Profile (SP)**.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:36665
+    description: Local Development
+
+tags:
+  - name: SP03
+    description: Action History (Bearer token required)
+
+paths:
+  /rest/pages/SP03:
+    get:
+      operationId: listActions
+      tags: [SP03]
+      summary: Daftar riwayat aktivitas
+      description: |
+        Mengambil daftar aktivitas user dengan pencarian, pagination, dan sorting.
+        Mendukung query parameter `ActionMeta` (search, page, size, sort_by, sort_order).
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: string
+          description: Filter by user ID (opsional)
+          example: "usr-001"
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Pencarian teks
+          example: login
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+          description: Nomor halaman
+          example: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+          description: Jumlah data per halaman
+          example: 10
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [created_at, action, module_code]
+          description: Kolom untuk sorting
+          example: created_at
+        - name: sort_order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+          description: Urutan sorting
+          example: desc
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActionListResponse"
+              example:
+                message: Actions retrieved
+                data:
+                  - id: "act-001"
+                    user_id: "usr-001"
+                    company_id: "comp-001"
+                    module_code: SP00
+                    action: POST
+                    path: /rest/guest/SP00
+                    ip_address: 192.168.1.100
+                    user_agent: Mozilla/5.0
+                    created_at: "2026-07-21T10:30:00Z"
+                meta:
+                  page: 1
+                  size: 10
+                  total: 1
+                  total_pages: 1
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    UserActionItem:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "act-001"
+        user_id:
+          type: string
+          example: "usr-001"
+        company_id:
+          type: string
+          example: "comp-001"
+        module_code:
+          type: string
+          example: SP00
+        action:
+          type: string
+          example: POST
+        path:
+          type: string
+          example: /rest/guest/SP00
+        ip_address:
+          type: string
+          example: 192.168.1.100
+        user_agent:
+          type: string
+          example: Mozilla/5.0
+        created_at:
+          type: string
+          example: "2026-07-21T10:30:00Z"
+
+    GridMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        size:
+          type: integer
+          example: 10
+        total:
+          type: integer
+          example: 1
+        total_pages:
+          type: integer
+          example: 1
+
+    ActionListResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Actions retrieved
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserActionItem"
+        meta:
+          $ref: "#/components/schemas/GridMeta"
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+        error:
+          type: string
+        request_id:
+          type: string
+
+  responses:
+    ValidationError:
+      description: Input tidak valid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            code: VALIDATION_ERROR
+            error: Invalid query parameters
+            request_id: "550e8400-e29b-41d4-a716-446655440000"
+    Unauthorized:
+      description: Tidak terautentikasi
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            code: UNAUTHORIZED
+            error: User not found in session
+            request_id: "550e8400-e29b-41d4-a716-446655440000"

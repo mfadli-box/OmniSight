@@ -1,0 +1,390 @@
+enum assessment_status {
+  planned
+  in_progress
+  completed
+  archived
+}
+
+enum compliance_status {
+  compliant
+  non_compliant
+  partial
+  not_applicable
+}
+
+enum soa_status {
+  implemented
+  partial
+  excluded
+}
+
+enum capa_source {
+  incident
+  audit
+  complaint
+  risk
+  improvement
+  nonconformity
+}
+
+enum capa_status {
+  open
+  investigating
+  root_cause
+  corrective_action
+  verification
+  effectiveness
+  closed
+  reopened
+}
+
+enum capa_severity {
+  critical
+  major
+  minor
+  observation
+}
+
+enum finding_type {
+  nonconformity
+  observation
+  opportunity_for_improvement
+  major_nonconformity
+  minor_nonconformity
+}
+
+enum audit_type {
+  internal
+  external
+  supplier
+  certification
+}
+
+enum audit_status {
+  planned
+  in_progress
+  completed
+  cancelled
+}
+
+enum review_status {
+  scheduled
+  in_progress
+  completed
+  deferred
+}
+
+model ict_comp_standard {
+  id          String                @id @default(uuid())
+  company_id  String
+  code        String
+  name        String
+  version     String?
+  description String?
+  website     String?
+  is_active   Boolean               @default(true)
+  created_at  DateTime              @default(now())
+  controls    ict_comp_control[]
+  assessments ict_comp_assessment[]
+  ictCompSoas ict_comp_soa[]
+
+  @@unique([company_id, code])
+}
+
+model ict_comp_control {
+  id                      String             @id @default(uuid())
+  standard_id             String
+  parent_id               String?
+  code                    String
+  name                    String
+  description             String?
+  requirement_text        String
+  implementation_guidance String?
+  is_mandatory            Boolean            @default(true)
+  sort_order              Int
+  created_at              DateTime           @default(now())
+  standard                ict_comp_standard  @relation(fields: [standard_id], references: [id])
+  parent                  ict_comp_control?  @relation("control_hierarchy", fields: [parent_id], references: [id])
+  children                ict_comp_control[] @relation("control_hierarchy")
+  findings                ict_comp_finding[]
+  ictCompSoas             ict_comp_soa[]
+
+  @@unique([standard_id, code])
+  @@index([standard_id])
+}
+
+model ict_comp_assessment {
+  id                   String             @id @default(uuid())
+  company_id           String
+  standard_id          String
+  name                 String
+  assessment_date      DateTime
+  status               assessment_status  @default(planned)
+  assessor_name        String?
+  assessor_org         String?
+  total_controls       Int                @default(0)
+  compliant_count      Int                @default(0)
+  non_compliant_count  Int                @default(0)
+  partial_count        Int                @default(0)
+  not_applicable_count Int                @default(0)
+  compliance_score     Decimal?
+  report_url           String?
+  notes                String?
+  created_at           DateTime           @default(now())
+  updated_at           DateTime           @default(now())
+  standard             ict_comp_standard  @relation(fields: [standard_id], references: [id])
+  findings             ict_comp_finding[]
+
+  @@unique([company_id, name])
+  @@index([company_id])
+  @@index([standard_id])
+}
+
+model ict_comp_finding {
+  id               String              @id @default(uuid())
+  assessment_id    String
+  control_id       String
+  company_id       String
+  status           compliance_status
+  finding_text     String
+  evidence_text    String?
+  evidence_files   String[]
+  severity         severity_level
+  remediation_plan String?
+  target_date      DateTime?
+  assigned_to      String?
+  completed_at     DateTime?
+  created_at       DateTime            @default(now())
+  updated_at       DateTime            @default(now())
+  assessment       ict_comp_assessment @relation(fields: [assessment_id], references: [id])
+  control          ict_comp_control    @relation(fields: [control_id], references: [id])
+  capas            ict_capa[]
+
+  @@unique([assessment_id, control_id])
+  @@index([company_id])
+  @@index([status])
+  @@index([severity])
+}
+
+model ict_comp_soa {
+  id                      String            @id @default(uuid())
+  company_id              String
+  standard_id             String
+  control_id              String
+  is_applicable           Boolean           @default(true)
+  status                  soa_status        @default(implemented)
+  implementation_notes    String?
+  evidence_urls           String[]
+  exclusion_justification String?
+  reviewed_by             String?
+  reviewed_at             DateTime?
+  created_at              DateTime          @default(now())
+  updated_at              DateTime          @default(now())
+  standard                ict_comp_standard @relation(fields: [standard_id], references: [id])
+  control                 ict_comp_control  @relation(fields: [control_id], references: [id])
+  reviewer                dat_user?         @relation(fields: [reviewed_by], references: [id])
+
+  @@unique([company_id, standard_id, control_id])
+  @@index([company_id])
+  @@index([standard_id])
+  @@index([is_applicable])
+}
+
+model ict_capa {
+  id                  String                 @id @default(uuid())
+  company_id          String
+  code                String
+  source_type         capa_source
+  source_id           String?
+  title               String
+  description         String
+  immediate_action    String?
+  root_cause          String?
+  root_cause_method   String?
+  severity            capa_severity          @default(minor)
+  status              capa_status            @default(open)
+  assigned_to         String?
+  target_date         DateTime?
+  effectiveness       String?
+  effectiveness_notes String?
+  verified_by         String?
+  verified_at         DateTime?
+  closed_at           DateTime?
+  created_at          DateTime               @default(now())
+  updated_at          DateTime               @default(now())
+  assignee            dat_user?              @relation("capa_assignee", fields: [assigned_to], references: [id])
+  verifier            dat_user?              @relation("capa_verifier", fields: [verified_by], references: [id])
+  actions             ict_capa_action[]
+  verification        ict_capa_verification?
+  finding             ict_comp_finding?      @relation(fields: [source_id], references: [id])
+
+  @@unique([company_id, code])
+  @@index([company_id])
+  @@index([status])
+  @@index([severity])
+  @@index([source_type, source_id])
+  @@index([assigned_to])
+}
+
+model ict_capa_action {
+  id             String    @id @default(uuid())
+  capa_id        String
+  action_type    String
+  description    String
+  responsible_id String?
+  due_date       DateTime?
+  completed_at   DateTime?
+  evidence       String?
+  status         String    @default("pending")
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @default(now())
+  capa           ict_capa  @relation(fields: [capa_id], references: [id], onDelete: Cascade)
+  responsible    dat_user? @relation(fields: [responsible_id], references: [id])
+
+  @@index([capa_id])
+  @@index([status])
+}
+
+model ict_capa_verification {
+  id                 String    @id @default(uuid())
+  capa_id            String
+  verifier_id        String
+  verification_date  DateTime
+  is_effective       Boolean
+  notes              String?
+  follow_up_required Boolean   @default(false)
+  follow_up_date     DateTime?
+  created_at         DateTime  @default(now())
+  capa               ict_capa  @relation(fields: [capa_id], references: [id])
+  verifier           dat_user  @relation(fields: [verifier_id], references: [id])
+
+  @@unique([capa_id])
+}
+
+model ict_audit_program {
+  id          String      @id @default(uuid())
+  company_id  String
+  year        Int
+  title       String
+  description String?
+  status      String      @default("planned")
+  created_at  DateTime    @default(now())
+  updated_at  DateTime    @default(now())
+  audits      ict_audit[]
+  datUser     dat_user?   @relation(fields: [dat_userId], references: [id])
+  dat_userId  String?
+
+  @@unique([company_id, year])
+  @@index([company_id])
+}
+
+model ict_audit {
+  id                    String              @id @default(uuid())
+  program_id            String
+  company_id            String
+  title                 String
+  scope                 String
+  objectives            String?
+  audit_type            audit_type          @default(internal)
+  criteria              String?
+  auditor_id            String
+  audit_date            DateTime
+  planned_duration_days Int?
+  status                audit_status        @default(planned)
+  finding_count         Int                 @default(0)
+  nonconformity_count   Int                 @default(0)
+  observation_count     Int                 @default(0)
+  improvement_count     Int                 @default(0)
+  report_url            String?
+  notes                 String?
+  created_at            DateTime            @default(now())
+  updated_at            DateTime            @default(now())
+  program               ict_audit_program   @relation(fields: [program_id], references: [id])
+  auditor               dat_user            @relation(fields: [auditor_id], references: [id])
+  findings              ict_audit_finding[]
+
+  @@index([program_id])
+  @@index([company_id])
+  @@index([status])
+  @@index([audit_date])
+}
+
+model ict_audit_finding {
+  id                    String        @id @default(uuid())
+  audit_id              String
+  company_id            String
+  finding_type          finding_type
+  severity              capa_severity
+  clause                String?
+  description           String
+  evidence              String?
+  requirement_reference String?
+  root_cause            String?
+  assigned_to           String?
+  target_date           DateTime?
+  status                String        @default("open")
+  verified_by           String?
+  verified_at           DateTime?
+  created_at            DateTime      @default(now())
+  updated_at            DateTime      @default(now())
+  audit                 ict_audit     @relation(fields: [audit_id], references: [id], onDelete: Cascade)
+  assignee              dat_user?     @relation("audit_assignee", fields: [assigned_to], references: [id])
+  verifier              dat_user?     @relation("audit_verifier", fields: [verified_by], references: [id])
+
+  @@index([audit_id])
+  @@index([company_id])
+  @@index([finding_type])
+  @@index([status])
+  @@index([severity])
+}
+
+model ict_mgmt_review {
+  id                  String                   @id @default(uuid())
+  company_id          String
+  title               String
+  review_date         DateTime
+  review_type         String
+  status              review_status            @default(scheduled)
+  attendees           String[]
+  meeting_minutes_url String?
+  summary             String?
+  created_at          DateTime                 @default(now())
+  updated_at          DateTime                 @default(now())
+  inputs              ict_mgmt_review_input[]
+  outputs             ict_mgmt_review_output[]
+
+  @@index([company_id])
+  @@index([status])
+  @@index([review_date])
+}
+
+model ict_mgmt_review_input {
+  id          String          @id @default(uuid())
+  review_id   String
+  category    String
+  title       String
+  data_source String?
+  summary     String
+  metrics     Json?
+  created_at  DateTime        @default(now())
+  review      ict_mgmt_review @relation(fields: [review_id], references: [id], onDelete: Cascade)
+
+  @@index([review_id])
+}
+
+model ict_mgmt_review_output {
+  id              String          @id @default(uuid())
+  review_id       String
+  decision        String
+  action_required Boolean         @default(false)
+  assigned_to     String?
+  target_date     DateTime?
+  status          String          @default("pending")
+  created_at      DateTime        @default(now())
+  updated_at      DateTime        @default(now())
+  review          ict_mgmt_review @relation(fields: [review_id], references: [id], onDelete: Cascade)
+  assignee        dat_user?       @relation(fields: [assigned_to], references: [id])
+
+  @@index([review_id])
+  @@index([status])
+}

@@ -1,0 +1,9 @@
+ict_docs/config/
+ict_docs/history/
+ict_docs/media/
+notes.txt
+*.env
+*.env.pub
+*.env.dev
+*.exe
+.claude

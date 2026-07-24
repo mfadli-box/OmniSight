@@ -1,0 +1,298 @@
+openapi: 3.0.3
+info:
+  title: OmniSight API - SM04 (Signature/Doc Type Management)
+  description: |
+    Endpoint manajemen tipe persetujuan (signature type) dengan approval workflow multi-step.
+    Bagian dari modul **System Manager (SM)**. Hanya bisa diakses oleh **Admin**.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:36665
+    description: Local Development
+
+tags:
+  - name: SM04
+    description: Signature/Doc Type Management (Admin only)
+
+paths:
+  /rest/pages/admin/SM04:
+    get:
+      operationId: listSignatureType
+      tags: [SM04]
+      summary: Daftar tipe persetujuan
+      description: Mengambil daftar semua signature type beserta approval steps dan signers.
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignatureTypeListResponse"
+              example:
+                message: Signature types retrieved
+                data:
+                  - id: "sig-001"
+                    code: STANDARD
+                    name: Standard Approval
+                    created_at: "2026-07-01T00:00:00Z"
+                    steps:
+                      - id: "step-001"
+                        step: 1
+                        condition: manager_approval
+                        signers:
+                          - user_id: "usr-002"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+    post:
+      operationId: createSignatureType
+      tags: [SM04]
+      summary: Buat tipe persetujuan baru
+      description: |
+        Membuat signature type baru dengan approval steps dan signers.
+        Setiap step memiliki condition dan daftar user yang harus menandatangani.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TypeCreateRequest"
+            example:
+              code: STANDARD
+              name: Standard Approval
+              steps:
+                - step: 1
+                  condition: manager_approval
+                  user_ids:
+                    - "usr-002"
+                - step: 2
+                  condition: director_approval
+                  user_ids:
+                    - "usr-003"
+      responses:
+        "201":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: Signature type created
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  /rest/pages/admin/SM04/{id}:
+    put:
+      operationId: updateSignatureType
+      tags: [SM04]
+      summary: Update tipe persetujuan
+      description: |
+        Memperbarui signature type. Steps lama akan dihapus dan diganti dengan yang baru.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TypeCreateRequest"
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: Signature type updated
+
+  /rest/pages/admin/SM04/user:
+    get:
+      operationId: listUser
+      tags: [SM04]
+      summary: Daftar user untuk signer
+      description: |
+        Mengambil daftar user untuk dropdown pemilih signer.
+        Admin melihat semua user, non-admin hanya user satu perusahaan.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Pencarian nama/username
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserListResponse"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    IdParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Signature Type ID
+
+  schemas:
+    SignatureTypeItem:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        name:
+          type: string
+        created_at:
+          type: string
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/ApprovalStep"
+
+    ApprovalStep:
+      type: object
+      properties:
+        id:
+          type: string
+        step:
+          type: integer
+        condition:
+          type: string
+        signers:
+          type: array
+          items:
+            $ref: "#/components/schemas/ApprovalSign"
+
+    ApprovalSign:
+      type: object
+      properties:
+        user_id:
+          type: string
+
+    TypeCreateRequest:
+      type: object
+      required: [code, name, steps]
+      properties:
+        code:
+          type: string
+          description: Kode unik tipe persetujuan
+          example: STANDARD
+        name:
+          type: string
+          description: Nama tipe persetujuan
+          example: Standard Approval
+        steps:
+          type: array
+          description: Daftar approval steps
+          items:
+            $ref: "#/components/schemas/StepCreateReq"
+
+    StepCreateReq:
+      type: object
+      required: [step, condition, user_ids]
+      properties:
+        step:
+          type: integer
+          description: Urutan step
+          example: 1
+        condition:
+          type: string
+          description: Kondisi approval
+          example: manager_approval
+        user_ids:
+          type: array
+          description: Daftar user ID yang harus menandatangani
+          items:
+            type: string
+          example:
+            - "usr-002"
+
+    UserListItem:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        fullname:
+          type: string
+        company_id:
+          type: string
+
+    SignatureTypeListResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SignatureTypeItem"
+
+    UserListResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserListItem"
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+        error:
+          type: string
+        request_id:
+          type: string
+
+  responses:
+    ValidationError:
+      description: Input tidak valid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: Tidak terautentikasi
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: Akses ditolak
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"

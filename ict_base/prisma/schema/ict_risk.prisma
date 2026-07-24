@@ -1,0 +1,119 @@
+enum risk_likelihood {
+  rare
+  unlikely
+  possible
+  likely
+  almost_certain
+}
+
+enum risk_impact {
+  negligible
+  minor
+  moderate
+  major
+  severe
+}
+
+enum risk_level {
+  critical
+  high
+  medium
+  low
+  very_low
+}
+
+enum risk_status {
+  identified
+  assessed
+  treating
+  monitored
+  closed
+  accepted
+}
+
+model ict_risk_category {
+  id          String              @id @default(uuid())
+  company_id  String
+  parent_id   String?
+  code        String
+  name        String
+  description String?
+  is_active   Boolean             @default(true)
+  created_at  DateTime            @default(now())
+  parent      ict_risk_category?  @relation("risk_category_hierarchy", fields: [parent_id], references: [id])
+  children    ict_risk_category[] @relation("risk_category_hierarchy")
+  risks       ict_risk[]
+
+  @@unique([company_id, code])
+}
+
+model ict_risk {
+  id               String                @id @default(uuid())
+  company_id       String
+  category_id      String
+  asset_id         String?
+  comp_finding_id  String?
+  code             String
+  title            String
+  description      String
+  source           String?
+  likelihood       risk_likelihood
+  impact           risk_impact
+  risk_score       Int
+  risk_level       risk_level
+  inherent_score   Int?
+  residual_score   Int?
+  status           risk_status           @default(identified)
+  owner_id         String?
+  identified_date  DateTime
+  last_review_date DateTime?
+  next_review_date DateTime?
+  created_at       DateTime              @default(now())
+  updated_at       DateTime              @default(now())
+  category         ict_risk_category     @relation(fields: [category_id], references: [id])
+  asset            ict_asset?            @relation(fields: [asset_id], references: [id])
+  assessments      ict_risk_assessment[]
+  treatments       ict_risk_treatment[]
+
+  @@unique([company_id, code])
+  @@index([company_id])
+  @@index([risk_level])
+  @@index([status])
+}
+
+model ict_risk_assessment {
+  id              String          @id @default(uuid())
+  risk_id         String
+  assessor_id     String
+  assessment_date DateTime
+  new_likelihood  risk_likelihood
+  new_impact      risk_impact
+  new_score       Int
+  notes           String?
+  created_at      DateTime        @default(now())
+  risk            ict_risk        @relation(fields: [risk_id], references: [id])
+  assessor        dat_user        @relation(fields: [assessor_id], references: [id])
+
+  @@index([risk_id])
+}
+
+model ict_risk_treatment {
+  id             String    @id @default(uuid())
+  risk_id        String
+  treatment_type String
+  description    String
+  action_items   Json?
+  cost_estimate  Decimal?
+  target_date    DateTime?
+  owner_id       String?
+  status         String    @default("planned")
+  effectiveness  String?
+  completed_at   DateTime?
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @default(now())
+  risk           ict_risk  @relation(fields: [risk_id], references: [id])
+  owner          dat_user? @relation(fields: [owner_id], references: [id])
+
+  @@index([risk_id])
+  @@index([status])
+}

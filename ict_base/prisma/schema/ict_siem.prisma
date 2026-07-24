@@ -1,0 +1,94 @@
+enum alert_status {
+  new
+  acknowledged
+  investigating
+  resolved
+  false_positive
+}
+
+model ict_siem_source {
+  id               String    @id @default(uuid())
+  company_id       String
+  code             String
+  name             String
+  source_type      String
+  endpoint         String?
+  config           Json?
+  is_enabled       Boolean   @default(true)
+  last_received_at DateTime?
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @default(now())
+
+  @@unique([company_id, code])
+}
+
+model ict_siem_rule {
+  id                 String           @id @default(uuid())
+  company_id         String
+  code               String
+  name               String
+  description        String?
+  rule_type          String
+  query              Json
+  severity           severity_level
+  mitre_tactic       String?
+  mitre_technique    String?
+  mitre_technique_id String?
+  is_enabled         Boolean          @default(true)
+  cooldown_minutes   Int              @default(15)
+  trigger_count      Int              @default(0)
+  last_triggered_at  DateTime?
+  created_by         String?
+  created_at         DateTime         @default(now())
+  updated_at         DateTime         @default(now())
+  alerts             ict_siem_alert[]
+
+  @@unique([company_id, code])
+  @@index([company_id])
+  @@index([severity])
+  @@index([is_enabled])
+}
+
+model ict_siem_alert {
+  id                String         @id @default(uuid())
+  rule_id           String
+  company_id        String
+  title             String
+  description       String
+  severity          severity_level
+  status            alert_status   @default(new)
+  source_ip         String?
+  source_host       String?
+  affected_asset_id String?
+  evidence          Json?
+  mitre_tactic      String?
+  mitre_technique   String?
+  assigned_to       String?
+  acknowledged_at   DateTime?
+  investigating_at  DateTime?
+  resolved_at       DateTime?
+  resolution_notes  String?
+  created_at        DateTime       @default(now())
+  updated_at        DateTime       @default(now())
+  rule              ict_siem_rule  @relation(fields: [rule_id], references: [id])
+  asset             ict_asset?     @relation(fields: [affected_asset_id], references: [id])
+
+  @@index([company_id])
+  @@index([rule_id])
+  @@index([status])
+  @@index([severity])
+  @@index([created_at])
+  @@index([source_ip])
+}
+
+model ict_siem_correlation {
+  id                  String   @id @default(uuid())
+  company_id          String
+  name                String
+  description         String?
+  rule_ids            String[]
+  time_window_minutes Int
+  match_count         Int
+  is_enabled          Boolean  @default(true)
+  created_at          DateTime @default(now())
+}

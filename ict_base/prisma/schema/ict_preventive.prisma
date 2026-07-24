@@ -1,0 +1,385 @@
+enum equipment_category {
+  wifi
+  zoom
+  other
+}
+
+enum equipment_status {
+  active
+  inactive
+  maintenance
+  damaged
+}
+
+enum frequency {
+  daily
+  weekly
+  biweekly
+  monthly
+  quarterly
+}
+
+enum checklist_status {
+  pending
+  in_progress
+  completed
+  overdue
+}
+
+enum checklist_result {
+  pass
+  fail
+  needs_repair
+}
+
+enum issue_status {
+  open
+  in_progress
+  resolved
+  escalated
+}
+
+enum event_type {
+  scheduled
+  completed
+  overdue
+  cancelled
+}
+
+model ict_pm_equipment_type {
+  id          String                      @id @default(uuid())
+  company_id  String
+  code        String
+  name        String
+  category    equipment_category          @default(other)
+  description String?
+  icon        String?
+  is_active   Boolean                     @default(true)
+  created_at  DateTime                    @default(now())
+  equipment   ict_pm_equipment[]
+  templates   ict_pm_checklist_template[]
+
+  @@unique([company_id, code])
+}
+
+model ict_pm_room {
+  id           String                  @id @default(uuid())
+  company_id   String
+  location_id  String
+  code         String
+  name         String
+  floor        String?
+  capacity     Int?
+  has_wifi     Boolean                 @default(false)
+  has_zoom     Boolean                 @default(false)
+  description  String?
+  is_active    Boolean                 @default(true)
+  created_at   DateTime                @default(now())
+  updated_at   DateTime                @default(now())
+  location     dat_location            @relation(fields: [location_id], references: [id])
+  equipment    ict_pm_equipment[]
+  schedules    ict_pm_schedule[]
+  checklists   ict_pm_checklist[]
+  issues       ict_pm_issue[]
+  events       ict_pm_calendar_event[]
+  wifi_checks  ict_pm_wifi_check[]
+  vicon_checks ict_pm_vicon_check[]
+
+  @@unique([company_id, code])
+  @@index([company_id])
+  @@index([location_id])
+}
+
+model ict_pm_equipment {
+  id                String                @id @default(uuid())
+  company_id        String
+  room_id           String
+  equipment_type_id String
+  asset_id          String?
+  code              String
+  name              String
+  brand             String?
+  model             String?
+  serial_number     String?
+  ip_address        String?
+  install_date      DateTime?
+  warranty_end      DateTime?
+  status            equipment_status      @default(active)
+  notes             String?
+  is_active         Boolean               @default(true)
+  created_at        DateTime              @default(now())
+  updated_at        DateTime              @default(now())
+  room              ict_pm_room           @relation(fields: [room_id], references: [id])
+  equipment_type    ict_pm_equipment_type @relation(fields: [equipment_type_id], references: [id])
+  asset             ict_asset?            @relation(fields: [asset_id], references: [id])
+  checklists        ict_pm_checklist[]
+  issues            ict_pm_issue[]
+
+  @@unique([company_id, code])
+  @@index([company_id])
+  @@index([room_id])
+  @@index([status])
+}
+
+model ict_pm_checklist_template {
+  id                String                @id @default(uuid())
+  company_id        String
+  equipment_type_id String
+  name              String
+  description       String?
+  items             Json
+  is_active         Boolean               @default(true)
+  created_at        DateTime              @default(now())
+  updated_at        DateTime              @default(now())
+  equipment_type    ict_pm_equipment_type @relation(fields: [equipment_type_id], references: [id])
+  schedules         ict_pm_schedule[]
+
+  @@unique([company_id, name])
+  @@index([company_id])
+  @@index([equipment_type_id])
+}
+
+model ict_pm_schedule {
+  id                String                    @id @default(uuid())
+  company_id        String
+  room_id           String
+  template_id       String
+  name              String
+  frequency         frequency
+  day_of_week       Int?
+  day_of_month      Int?
+  time_start        String
+  time_end          String?
+  assigned_to       String?
+  next_check_date   DateTime?
+  last_check_date   DateTime?
+  is_active         Boolean                   @default(true)
+  created_at        DateTime                  @default(now())
+  updated_at        DateTime                  @default(now())
+  room              ict_pm_room               @relation(fields: [room_id], references: [id])
+  template          ict_pm_checklist_template @relation(fields: [template_id], references: [id])
+  assignee          dat_user?                 @relation(fields: [assigned_to], references: [id])
+  checklists        ict_pm_checklist[]
+  events            ict_pm_calendar_event[]
+  wifi_checks       ict_pm_wifi_check[]
+  vicon_checks      ict_pm_vicon_check[]
+  store_checks      ict_pm_store_check[]
+  warehouse_checks  ict_pm_warehouse_check[]
+  production_checks ict_pm_production_check[]
+
+  @@unique([company_id, name])
+  @@index([company_id])
+  @@index([room_id])
+  @@index([next_check_date])
+}
+
+model ict_pm_checklist {
+  id           String                  @id @default(uuid())
+  company_id   String
+  schedule_id  String
+  equipment_id String
+  room_id      String
+  check_date   DateTime
+  status       checklist_status        @default(pending)
+  result       checklist_result?
+  items        Json
+  notes        String?
+  started_at   DateTime?
+  completed_at DateTime?
+  checked_by   String?
+  created_at   DateTime                @default(now())
+  updated_at   DateTime                @default(now())
+  schedule     ict_pm_schedule         @relation(fields: [schedule_id], references: [id])
+  equipment    ict_pm_equipment        @relation(fields: [equipment_id], references: [id])
+  room         ict_pm_room             @relation(fields: [room_id], references: [id])
+  checker      dat_user?               @relation(fields: [checked_by], references: [id])
+  issues       ict_pm_issue[]
+  events       ict_pm_calendar_event[]
+
+  @@unique([company_id, check_date, equipment_id])
+  @@index([company_id])
+  @@index([schedule_id])
+  @@index([check_date])
+  @@index([status])
+}
+
+model ict_pm_issue {
+  id               String            @id @default(uuid())
+  company_id       String
+  checklist_id     String?
+  equipment_id     String
+  room_id          String
+  title            String
+  description      String?
+  severity         severity_level
+  status           issue_status      @default(open)
+  assigned_to      String?
+  resolved_by      String?
+  resolved_at      DateTime?
+  resolution_notes String?
+  sr_request_id    String?
+  created_by       String
+  created_at       DateTime          @default(now())
+  updated_at       DateTime          @default(now())
+  checklist        ict_pm_checklist? @relation(fields: [checklist_id], references: [id])
+  equipment        ict_pm_equipment  @relation(fields: [equipment_id], references: [id])
+  room             ict_pm_room       @relation(fields: [room_id], references: [id])
+  assignee         dat_user?         @relation("pm_issue_assignee", fields: [assigned_to], references: [id])
+  resolver         dat_user?         @relation("pm_issue_resolver", fields: [resolved_by], references: [id])
+  creator          dat_user          @relation("pm_issue_creator", fields: [created_by], references: [id])
+
+  @@index([company_id])
+  @@index([equipment_id])
+  @@index([room_id])
+  @@index([status])
+  @@index([severity])
+}
+
+model ict_pm_calendar_event {
+  id           String            @id @default(uuid())
+  company_id   String
+  schedule_id  String?
+  checklist_id String?
+  title        String
+  description  String?
+  event_date   DateTime
+  time_start   String
+  time_end     String?
+  event_type   event_type        @default(scheduled)
+  room_id      String?
+  assigned_to  String?
+  color        String?
+  created_at   DateTime          @default(now())
+  updated_at   DateTime          @default(now())
+  schedule     ict_pm_schedule?  @relation(fields: [schedule_id], references: [id])
+  checklist    ict_pm_checklist? @relation(fields: [checklist_id], references: [id])
+  room         ict_pm_room?      @relation(fields: [room_id], references: [id])
+  assignee     dat_user?         @relation(fields: [assigned_to], references: [id])
+
+  @@index([company_id])
+  @@index([event_date])
+  @@index([event_type])
+  @@index([assigned_to])
+}
+
+model ict_pm_wifi_check {
+  id          String           @id @default(uuid())
+  company_id  String
+  schedule_id String?
+  room_id     String
+  check_date  DateTime
+  rssi        Decimal?
+  snr         Decimal?
+  latency     Decimal?
+  overlap     Decimal?
+  notes       String?
+  checked_by  String?
+  created_at  DateTime         @default(now())
+  updated_at  DateTime         @default(now())
+  schedule    ict_pm_schedule? @relation(fields: [schedule_id], references: [id])
+  room        ict_pm_room      @relation(fields: [room_id], references: [id])
+  checker     dat_user?        @relation(fields: [checked_by], references: [id])
+
+  @@unique([company_id, room_id, check_date])
+  @@index([company_id])
+  @@index([room_id])
+  @@index([check_date])
+}
+
+model ict_pm_vicon_check {
+  id          String           @id @default(uuid())
+  company_id  String
+  schedule_id String?
+  room_id     String
+  check_date  DateTime
+  pc_vicon    String?
+  infocus     String?
+  camera      String?
+  sound       String?
+  notes       String?
+  checked_by  String?
+  created_at  DateTime         @default(now())
+  updated_at  DateTime         @default(now())
+  schedule    ict_pm_schedule? @relation(fields: [schedule_id], references: [id])
+  room        ict_pm_room      @relation(fields: [room_id], references: [id])
+  checker     dat_user?        @relation(fields: [checked_by], references: [id])
+
+  @@unique([company_id, room_id, check_date])
+  @@index([company_id])
+  @@index([room_id])
+  @@index([check_date])
+}
+
+model ict_pm_store_check {
+  id           String           @id @default(uuid())
+  company_id   String
+  schedule_id  String?
+  location_id  String
+  check_date   DateTime
+  opening_cash Decimal?
+  closing_cash Decimal?
+  actual_cash  Decimal?
+  diff_cash    Decimal?
+  edc_total    Decimal?
+  qris_total   Decimal?
+  notes        String?
+  checked_by   String?
+  created_at   DateTime         @default(now())
+  updated_at   DateTime         @default(now())
+  schedule     ict_pm_schedule? @relation(fields: [schedule_id], references: [id])
+  location     dat_location     @relation(fields: [location_id], references: [id])
+  checker      dat_user?        @relation(fields: [checked_by], references: [id])
+
+  @@unique([company_id, location_id, check_date])
+  @@index([company_id])
+  @@index([location_id])
+  @@index([check_date])
+}
+
+model ict_pm_warehouse_check {
+  id             String           @id @default(uuid())
+  company_id     String
+  schedule_id    String?
+  location_id    String
+  check_date     DateTime
+  cleanliness    String?
+  stock_accuracy String?
+  fire_safety    String?
+  access_control String?
+  notes          String?
+  checked_by     String?
+  created_at     DateTime         @default(now())
+  updated_at     DateTime         @default(now())
+  schedule       ict_pm_schedule? @relation(fields: [schedule_id], references: [id])
+  location       dat_location     @relation(fields: [location_id], references: [id])
+  checker        dat_user?        @relation(fields: [checked_by], references: [id])
+
+  @@unique([company_id, location_id, check_date])
+  @@index([company_id])
+  @@index([location_id])
+  @@index([check_date])
+}
+
+model ict_pm_production_check {
+  id              String           @id @default(uuid())
+  company_id      String
+  schedule_id     String?
+  location_id     String
+  check_date      DateTime
+  machine_status  String?
+  output_quality  String?
+  safety_check    String?
+  maintenance_due String?
+  notes           String?
+  checked_by      String?
+  created_at      DateTime         @default(now())
+  updated_at      DateTime         @default(now())
+  schedule        ict_pm_schedule? @relation(fields: [schedule_id], references: [id])
+  location        dat_location     @relation(fields: [location_id], references: [id])
+  checker         dat_user?        @relation(fields: [checked_by], references: [id])
+
+  @@unique([company_id, location_id, check_date])
+  @@index([company_id])
+  @@index([location_id])
+  @@index([check_date])
+}

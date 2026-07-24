@@ -1,0 +1,191 @@
+enum vlan_status {
+  active
+  inactive
+  maintenance
+}
+
+enum route_scope {
+  local
+  connected
+  static
+  dynamic
+  bgp
+}
+
+enum route_status {
+  active
+  inactive
+  disabled
+}
+
+enum nat_type {
+  src_nat
+  dst_nat
+  masquerade
+  static_nat
+}
+
+enum interface_status {
+  up
+  down
+  disabled
+}
+
+enum interface_type {
+  ethernet
+  bridge
+  vlan
+  bond
+  tunnel
+  wireless
+  pppoe
+  loopback
+}
+
+model ict_network_vlan {
+  id             String                  @id @default(uuid())
+  company_id     String
+  location_id    String?
+  vlan_id        Int
+  name           String
+  description    String?
+  subnet_cidr    String?
+  gateway        String?
+  dns_primary    String?
+  dns_secondary  String?
+  status         vlan_status             @default(active)
+  is_active      Boolean                 @default(true)
+  created_at     DateTime                @default(now())
+  updated_at     DateTime                @default(now())
+  subnets        ict_network_subnet[]
+  interfaces     ict_network_interface[]
+  ip_allocations ict_ip_allocation[]
+
+  @@unique([company_id, vlan_id])
+  @@index([company_id])
+  @@index([location_id])
+  @@index([vlan_id])
+}
+
+model ict_network_subnet {
+  id              String                  @id @default(uuid())
+  company_id      String
+  vlan_id         String?
+  cidr            String
+  name            String
+  description     String?
+  gateway         String
+  subnet_mask     String
+  broadcast       String?
+  usable_start    String?
+  usable_end      String?
+  total_addresses Int
+  used_addresses  Int?
+  status          String                  @default("active")
+  is_active       Boolean                 @default(true)
+  created_at      DateTime                @default(now())
+  updated_at      DateTime                @default(now())
+  vlan            ict_network_vlan?       @relation(fields: [vlan_id], references: [id])
+  allocations     ict_ip_allocation[]
+  interfaces      ict_network_interface[]
+
+  @@unique([company_id, cidr])
+  @@index([company_id])
+  @@index([vlan_id])
+  @@index([cidr])
+}
+
+model ict_network_interface {
+  id             String              @id @default(uuid())
+  company_id     String
+  asset_id       String?
+  device_name    String
+  interface_name String
+  interface_type interface_type      @default(ethernet)
+  mac_address    String?
+  ip_address     String?
+  subnet_id      String?
+  vlan_id        String?
+  speed_mbps     Int?
+  status         interface_status    @default(up)
+  mtu            Int?
+  description    String?
+  is_active      Boolean             @default(true)
+  created_at     DateTime            @default(now())
+  updated_at     DateTime            @default(now())
+  vlan           ict_network_vlan?   @relation(fields: [vlan_id], references: [id])
+  subnet         ict_network_subnet? @relation(fields: [subnet_id], references: [id])
+  source_routes  ict_network_route[] @relation("route_out_interface")
+
+  @@unique([company_id, device_name, interface_name])
+  @@index([company_id])
+  @@index([asset_id])
+  @@index([vlan_id])
+}
+
+model ict_network_route {
+  id               String                 @id @default(uuid())
+  company_id       String
+  destination_cidr String
+  gateway          String?
+  interface_id     String?
+  distance         Int                    @default(1)
+  metric           Int?
+  scope            route_scope            @default(static)
+  status           route_status           @default(active)
+  is_active        Boolean                @default(true)
+  created_at       DateTime               @default(now())
+  updated_at       DateTime               @default(now())
+  out_interface    ict_network_interface? @relation("route_out_interface", fields: [interface_id], references: [id])
+
+  @@unique([company_id, destination_cidr, gateway, interface_id])
+  @@index([company_id])
+  @@index([destination_cidr])
+  @@index([gateway])
+  @@index([interface_id])
+}
+
+model ict_network_nat {
+  id           String               @id @default(uuid())
+  company_id   String
+  name         String
+  description  String?
+  nat_type     nat_type             @default(src_nat)
+  public_ip    String
+  public_port  Int?
+  private_ip   String
+  private_port Int?
+  protocol     String?              @default("tcp")
+  interface    String?
+  is_active    Boolean              @default(true)
+  created_at   DateTime             @default(now())
+  updated_at   DateTime             @default(now())
+  allocations  ict_ip_nat_mapping[]
+
+  @@unique([company_id, public_ip, public_port, private_ip, private_port])
+  @@index([company_id])
+  @@index([public_ip])
+  @@index([private_ip])
+  @@index([nat_type])
+}
+
+model ict_network_dhcp_pool {
+  id            String   @id @default(uuid())
+  company_id    String
+  subnet_id     String?
+  name          String
+  interface     String?
+  range_start   String
+  range_end     String
+  gateway       String?
+  dns_primary   String?
+  dns_secondary String?
+  lease_time    Int?
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @default(now())
+
+  @@unique([company_id, name])
+  @@index([company_id])
+  @@index([subnet_id])
+}

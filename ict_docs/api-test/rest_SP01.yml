@@ -1,0 +1,165 @@
+openapi: 3.0.3
+info:
+  title: OmniSight API - SP01 (Profile & Board Data)
+  description: |
+    Endpoint profil user dan data navigasi sidebar (module tree).
+    Bagian dari modul **Session Profile (SP)**.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:36665
+    description: Local Development
+
+tags:
+  - name: SP01
+    description: Profile & Board Data (Bearer token required)
+
+paths:
+  /rest/pages/SP01/company:
+    get:
+      operationId: listUserCompany
+      tags: [SP01]
+      summary: Daftar perusahaan user
+      description: Mengambil daftar perusahaan yang dimiliki user dari session token.
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: User companies retrieved
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/UserCompanyItem"
+              example:
+                message: User companies retrieved
+                data:
+                  - id: "uc-001"
+                    company_id: "comp-001"
+                    name: ACME Corporation
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /rest/pages/SP01/module:
+    get:
+      operationId: listUserModule
+      tags: [SP01]
+      summary: Daftar modul sidebar
+      description: |
+        Mengambil tree modul untuk sidebar navigation.
+        - Admin: mengembalikan semua modul.
+        - Non-admin: mengembalikan modul berdasarkan privilege user di perusahaan tertentu.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: company_id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: ID perusahaan aktif
+          example: comp-001
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: User modules retrieved
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ModuleTreeNode"
+              example:
+                message: User modules retrieved
+                data:
+                  - id: "mod-001"
+                    code: SP
+                    name: Session Profile
+                    path: ""
+                    is_page: false
+                    children:
+                      - id: "mod-002"
+                        code: SP01
+                        name: Profile
+                        path: /board/pages/SP01
+                        is_page: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    UserCompanyItem:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "uc-001"
+        company_id:
+          type: string
+          example: "comp-001"
+        name:
+          type: string
+          example: ACME Corporation
+
+    ModuleTreeNode:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "mod-001"
+        code:
+          type: string
+          example: SP
+        name:
+          type: string
+          example: Session Profile
+        path:
+          type: string
+          example: /board/pages/SP01
+        is_page:
+          type: boolean
+          example: false
+        children:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModuleTreeNode"
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+        error:
+          type: string
+        request_id:
+          type: string
+
+  responses:
+    Unauthorized:
+      description: Tidak terautentikasi
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            code: UNAUTHORIZED
+            error: User not found in session
+            request_id: "550e8400-e29b-41d4-a716-446655440000"

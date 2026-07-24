@@ -1,0 +1,120 @@
+model ict_dash_widget {
+  id            String            @id @default(uuid())
+  code          String            @unique
+  name          String
+  type          String
+  module_source String
+  data_query    String
+  config        Json
+  description   String?
+  is_active     Boolean           @default(true)
+  created_at    DateTime          @default(now())
+  updated_at    DateTime          @default(now())
+  layouts       ict_dash_layout[]
+}
+
+model ict_dash_layout {
+  id              String          @id @default(uuid())
+  user_id         String
+  widget_id       String
+  position_x      Int
+  position_y      Int
+  width           Int
+  height          Int
+  config_override Json?
+  is_visible      Boolean         @default(true)
+  created_at      DateTime        @default(now())
+  updated_at      DateTime        @default(now())
+  widget          ict_dash_widget @relation(fields: [widget_id], references: [id])
+  user            dat_user        @relation(fields: [user_id], references: [id])
+
+  @@unique([user_id, widget_id])
+}
+
+enum report_category {
+  general
+  iso_compliance
+  sop_execution
+  security
+  monitoring
+  incident
+  vulnerability
+  audit
+  risk
+  management_review
+}
+
+model ict_report_template {
+  id              String                @id @default(uuid())
+  company_id      String
+  code            String
+  name            String
+  description     String?
+  category        report_category       @default(general)
+  module_source   String
+  template_config Json
+  schedule        String?
+  schedule_cron   String?
+  recipients      Json?
+  format          String                @default("pdf")
+  is_active       Boolean               @default(true)
+  created_at      DateTime              @default(now())
+  updated_at      DateTime              @default(now())
+  instances       ict_report_instance[]
+  schedules       ict_report_schedule[]
+
+  @@unique([company_id, code])
+  @@index([company_id])
+  @@index([category])
+}
+
+model ict_report_instance {
+  id              String              @id @default(uuid())
+  template_id     String
+  company_id      String
+  generated_by    String
+  status          String              @default("generating")
+  file_path       String?
+  file_type       String
+  file_size       Int?
+  parameters      Json?
+  error_message   String?
+  generation_time Int?
+  generated_at    DateTime            @default(now())
+  template        ict_report_template @relation(fields: [template_id], references: [id])
+
+  @@index([template_id])
+  @@index([company_id])
+  @@index([status])
+  @@index([generated_at])
+}
+
+model ict_report_schedule {
+  id              String                @id @default(uuid())
+  template_id     String
+  company_id      String
+  name            String
+  cron_expression String
+  parameters      Json?
+  next_run_at     DateTime?
+  last_run_at     DateTime?
+  is_enabled      Boolean               @default(true)
+  created_at      DateTime              @default(now())
+  updated_at      DateTime              @default(now())
+  template        ict_report_template   @relation(fields: [template_id], references: [id])
+
+  @@index([template_id])
+  @@index([company_id])
+  @@index([next_run_at])
+  @@index([is_enabled])
+}
+
+model ict_dash_bookmark {
+  id         String   @id @default(uuid())
+  user_id    String
+  name       String
+  filters    Json
+  is_default Boolean  @default(false)
+  created_at DateTime @default(now())
+  user       dat_user @relation(fields: [user_id], references: [id])
+}

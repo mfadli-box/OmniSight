@@ -1,0 +1,99 @@
+enum terminal_status {
+  active
+  closed
+  timeout
+  error
+}
+
+enum log_stream_status {
+  streaming
+  paused
+  stopped
+  error
+}
+
+model ict_docker_compose_version {
+  id              String   @id @default(uuid())
+  compose_id      String
+  company_id      String
+  version         Int
+  compose_content String
+  env_content     String?
+  change_note     String?
+  change_type     String   @default("manual")
+  created_by      String
+  created_at      DateTime @default(now())
+
+  @@unique([compose_id, version])
+  @@index([compose_id])
+  @@index([company_id])
+  @@index([created_by])
+}
+
+model ict_docker_terminal_session {
+  id            String          @id @default(uuid())
+  host_id       String
+  container_id  String?
+  company_id    String
+  user_id       String
+  session_key   String
+  status        terminal_status @default(active)
+  shell         String          @default("/bin/sh")
+  cols          Int             @default(80)
+  rows          Int             @default(24)
+  started_at    DateTime        @default(now())
+  ended_at      DateTime?
+  duration_sec  Int?
+
+  @@unique([session_key])
+  @@index([host_id])
+  @@index([container_id])
+  @@index([company_id])
+  @@index([user_id])
+  @@index([status])
+}
+
+model ict_docker_log_stream {
+  id              String            @id @default(uuid())
+  host_id         String
+  container_id    String
+  company_id      String
+  user_id         String
+  stream_type     String            @default("both")
+  tail_lines      Int               @default(100)
+  follow          Boolean           @default(true)
+  status          log_stream_status @default(streaming)
+  started_at      DateTime          @default(now())
+  stopped_at      DateTime?
+
+  @@index([host_id, container_id])
+  @@index([company_id])
+  @@index([user_id])
+  @@index([status])
+}
+
+model ict_docker_compose_diff {
+  id           String   @id @default(uuid())
+  compose_id   String
+  from_version Int
+  to_version   Int
+  diff_content String
+  created_at   DateTime @default(now())
+
+  @@index([compose_id])
+}
+
+model ict_docker_env_override {
+  id         String   @id @default(uuid())
+  compose_id String
+  key        String
+  value      String
+  is_secret  Boolean  @default(false)
+  source     String   @default("manual")
+  created_by String?
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+
+  @@unique([compose_id, key])
+  @@index([compose_id])
+}

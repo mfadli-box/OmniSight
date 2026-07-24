@@ -1,0 +1,97 @@
+model ict_store_info {
+  id           String               @id @default(uuid())
+  location_id  String               @unique
+  company_id   String
+  ip_address   String?
+  phone_type   String?
+  phone_number String?
+  phone_imei   String?
+  notes        String?
+  created_at   DateTime             @default(now())
+  updated_at   DateTime             @default(now())
+  location     dat_location         @relation(fields: [location_id], references: [id], onDelete: Cascade)
+  edc_machines ict_store_edc[]
+  accounts     ict_store_account[]
+  assets       ict_store_asset[]
+  digisigns    ict_store_digisign[]
+
+  @@index([company_id])
+}
+
+model ict_store_edc {
+  id            String         @id @default(uuid())
+  store_info_id String
+  company_id    String
+  bank          String
+  type          String
+  connect_with  String
+  connect_to    String
+  mid           String?
+  tid           String?
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @default(now())
+  store_info    ict_store_info @relation(fields: [store_info_id], references: [id], onDelete: Cascade)
+
+  @@index([store_info_id])
+  @@index([company_id])
+}
+
+model ict_store_account {
+  id            String         @id @default(uuid())
+  store_info_id String
+  company_id    String
+  type          String
+  username      String
+  password      String?
+  phone_number  String?
+  sid           String?
+  mid           String?
+  uuid          String?
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @default(now())
+  store_info    ict_store_info @relation(fields: [store_info_id], references: [id], onDelete: Cascade)
+
+  @@index([store_info_id])
+  @@index([company_id])
+}
+
+model ict_store_asset {
+  id            String         @id @default(uuid())
+  store_info_id String
+  company_id    String
+  asset_type    String
+  pos           String?
+  ram           String?
+  printer       String?
+  tahun         Int?
+  detail        String?
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @default(now())
+  store_info    ict_store_info @relation(fields: [store_info_id], references: [id], onDelete: Cascade)
+
+  @@unique([store_info_id, asset_type])
+  @@index([store_info_id])
+  @@index([company_id])
+}
+
+model ict_store_digisign {
+  id            String         @id @default(uuid())
+  store_info_id String
+  company_id    String
+  mini_pc       String?
+  status_sewa   String?
+  sn_pc         String?
+  tv_1          String?
+  sn_tv_1       String?
+  tv_2          String?
+  sn_tv_2       String?
+  tv_3          String?
+  sn_tv_3       String?
+  detail        String?
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @default(now())
+  store_info    ict_store_info @relation(fields: [store_info_id], references: [id], onDelete: Cascade)
+
+  @@index([store_info_id])
+  @@index([company_id])
+}

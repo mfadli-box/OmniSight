@@ -1,0 +1,337 @@
+enum mikrotik_status {
+  connected
+  disconnected
+  error
+}
+
+enum hotspot_auth_type {
+  chap
+  pap
+  mschap
+  none
+}
+
+enum hotspot_status {
+  active
+  disabled
+}
+
+enum queue_type {
+  simple
+  simple_queue
+  queue_tree
+}
+
+enum firewall_action {
+  accept
+  drop
+  reject
+  tarpit
+  passthrough
+}
+
+enum firewall_chain {
+  input
+  forward
+  output
+}
+
+enum firewall_protocol {
+  tcp
+  udp
+  icmp
+  ip
+  all
+}
+
+model ict_mikrotik_device {
+  id                    String                              @id @default(uuid())
+  company_id            String
+  location_id           String?
+  asset_id              String?
+  name                  String
+  hostname              String
+  mac_address           String?
+  ip_address            String
+  port                  Int                                 @default(8728)
+  routeros_version      String?
+  board_name            String?
+  identity              String?
+  uptime                String?
+  status                mikrotik_status                     @default(disconnected)
+  last_seen_at          DateTime?
+  is_active             Boolean                             @default(true)
+  created_at            DateTime                            @default(now())
+  updated_at            DateTime                            @default(now())
+  hotspot_profiles      ict_mikrotik_hotspot_profile[]
+  hotspot_users         ict_mikrotik_hotspot_user[]
+  dhcp_leases           ict_mikrotik_dhcp_lease[]
+  firewall_rules        ict_mikrotik_firewall_rule[]
+  queues                ict_mikrotik_queue[]
+  port_groups           ict_mikrotik_port_group[]
+  vlan_groups           ict_mikrotik_vlan_group[]
+  clients               ict_mikrotik_client[]
+  access_normalizations ict_mikrotik_access_normalization[]
+  access_lists          ict_mikrotik_access_list[]
+
+  @@unique([company_id, name])
+  @@index([company_id])
+  @@index([location_id])
+  @@index([asset_id])
+  @@index([status])
+}
+
+model ict_mikrotik_hotspot_profile {
+  id              String                      @id @default(uuid())
+  device_id       String
+  company_id      String
+  name            String
+  interface       String
+  address_pool    String?
+  auth_method     hotspot_auth_type           @default(chap)
+  session_timeout Int?
+  idle_timeout    Int?
+  mac_auth        Boolean                     @default(false)
+  https_redirect  Boolean                     @default(false)
+  dns_name        String?
+  split_dns       Boolean                     @default(false)
+  is_active       Boolean                     @default(true)
+  created_at      DateTime                    @default(now())
+  updated_at      DateTime                    @default(now())
+  device          ict_mikrotik_device         @relation(fields: [device_id], references: [id], onDelete: Cascade)
+  users           ict_mikrotik_hotspot_user[]
+
+  @@unique([device_id, name])
+  @@index([device_id])
+}
+
+model ict_mikrotik_hotspot_user {
+  id            String                        @id @default(uuid())
+  device_id     String
+  profile_id    String?
+  company_id    String
+  username      String
+  password_hash String?
+  server        String?
+  uptime        String?
+  bytes_in      BigInt?
+  bytes_out     BigInt?
+  bytes_total   BigInt?
+  packets_in    BigInt?
+  packets_out   BigInt?
+  last_login_at DateTime?
+  status        hotspot_status                @default(active)
+  is_active     Boolean                       @default(true)
+  created_at    DateTime                      @default(now())
+  updated_at    DateTime                      @default(now())
+  device        ict_mikrotik_device           @relation(fields: [device_id], references: [id], onDelete: Cascade)
+  profile       ict_mikrotik_hotspot_profile? @relation(fields: [profile_id], references: [id])
+
+  @@unique([device_id, username])
+  @@index([device_id])
+  @@index([profile_id])
+  @@index([status])
+}
+
+model ict_mikrotik_dhcp_lease {
+  id             String              @id @default(uuid())
+  device_id      String
+  company_id     String
+  mac_address    String
+  address        String
+  hostname       String?
+  server_name    String?
+  status         String              @default("bound")
+  expires_at     DateTime?
+  uptime         String?
+  bytes_in       BigInt?
+  bytes_out      BigInt?
+  last_active_at DateTime?
+  is_active      Boolean             @default(true)
+  created_at     DateTime            @default(now())
+  updated_at     DateTime            @default(now())
+  device         ict_mikrotik_device @relation(fields: [device_id], references: [id], onDelete: Cascade)
+
+  @@unique([device_id, mac_address, address])
+  @@index([device_id])
+  @@index([mac_address])
+  @@index([address])
+  @@index([status])
+}
+
+model ict_mikrotik_firewall_rule {
+  id               String              @id @default(uuid())
+  device_id        String
+  company_id       String
+  chain            firewall_chain      @default(input)
+  action           firewall_action     @default(accept)
+  protocol         firewall_protocol?
+  src_address      String?
+  dst_address      String?
+  src_port         String?
+  dst_port         String?
+  in_interface     String?
+  out_interface    String?
+  src_mac_address  String?
+  connection_state String?
+  connection_nat   String?
+  comment          String?
+  bytes_counter    BigInt?
+  packets_counter  BigInt?
+  disabled         Boolean             @default(false)
+  log              Boolean             @default(false)
+  log_prefix       String?
+  place_before     String?
+  rule_order       Int                 @default(0)
+  is_active        Boolean             @default(true)
+  created_at       DateTime            @default(now())
+  updated_at       DateTime            @default(now())
+  device           ict_mikrotik_device @relation(fields: [device_id], references: [id], onDelete: Cascade)
+
+  @@index([device_id])
+  @@index([chain])
+  @@index([action])
+  @@index([disabled])
+}
+
+model ict_mikrotik_queue {
+  id              String              @id @default(uuid())
+  device_id       String
+  company_id      String
+  name            String
+  target          String
+  parent          String?
+  queue_type      queue_type          @default(simple)
+  max_limit       String?
+  min_limit       String?
+  burst_limit     String?
+  burst_threshold String?
+  burst_time      Int?
+  priority        Int                 @default(8)
+  bytes_in        BigInt?
+  bytes_out       BigInt?
+  packets_in      BigInt?
+  packets_out     BigInt?
+  rate_in         String?
+  rate_out        String?
+  disabled        Boolean             @default(false)
+  comment         String?
+  is_active       Boolean             @default(true)
+  created_at      DateTime            @default(now())
+  updated_at      DateTime            @default(now())
+  device          ict_mikrotik_device @relation(fields: [device_id], references: [id], onDelete: Cascade)
+
+  @@unique([device_id, name])
+  @@index([device_id])
+  @@index([target])
+  @@index([disabled])
+}
+
+model ict_mikrotik_port_group {
+  id             String                              @id @default(uuid())
+  device_id      String
+  company_id     String
+  ros_id         Int
+  name           String
+  port           String
+  description    String?
+  created_at     DateTime                            @default(now())
+  updated_at     DateTime                            @default(now())
+  device         ict_mikrotik_device                 @relation(fields: [device_id], references: [id], onDelete: Cascade)
+  normalizations ict_mikrotik_access_normalization[]
+
+  @@unique([device_id, name])
+  @@index([device_id])
+  @@index([company_id])
+}
+
+model ict_mikrotik_vlan_group {
+  id             String                              @id @default(uuid())
+  device_id      String
+  company_id     String
+  ros_id         Int
+  vlan_id        Int
+  name           String
+  description    String?
+  created_at     DateTime                            @default(now())
+  updated_at     DateTime                            @default(now())
+  device         ict_mikrotik_device                 @relation(fields: [device_id], references: [id], onDelete: Cascade)
+  normalizations ict_mikrotik_access_normalization[]
+
+  @@unique([device_id, vlan_id])
+  @@index([device_id])
+  @@index([company_id])
+}
+
+model ict_mikrotik_client {
+  id           String                     @id @default(uuid())
+  device_id    String
+  company_id   String
+  client_ip    String
+  device_type  String
+  name         String
+  status       String                     @default("active")
+  ros_id       Int?
+  ros_name     String?
+  ros_comment  String?
+  ros_status   String?
+  created_at   DateTime                   @default(now())
+  updated_at   DateTime                   @default(now())
+  device       ict_mikrotik_device        @relation(fields: [device_id], references: [id], onDelete: Cascade)
+  access_lists ict_mikrotik_access_list[]
+
+  @@unique([device_id, client_ip])
+  @@index([device_id])
+  @@index([company_id])
+  @@index([client_ip])
+  @@index([device_type])
+}
+
+model ict_mikrotik_access_normalization {
+  id            String                     @id @default(uuid())
+  device_id     String
+  company_id    String
+  vlan_group_id String
+  port_group_id String?
+  status        String                     @default("active")
+  ros_id        Int?
+  ros_name      String?
+  ros_comment   String?
+  ros_status    String?
+  created_at    DateTime                   @default(now())
+  updated_at    DateTime                   @default(now())
+  device        ict_mikrotik_device        @relation(fields: [device_id], references: [id], onDelete: Cascade)
+  vlan_group    ict_mikrotik_vlan_group    @relation(fields: [vlan_group_id], references: [id])
+  port_group    ict_mikrotik_port_group?   @relation(fields: [port_group_id], references: [id])
+  access_lists  ict_mikrotik_access_list[]
+
+  @@unique([device_id, vlan_group_id, port_group_id])
+  @@index([device_id])
+  @@index([company_id])
+  @@index([vlan_group_id])
+  @@index([port_group_id])
+}
+
+model ict_mikrotik_access_list {
+  id                      String                            @id @default(uuid())
+  device_id               String
+  company_id              String
+  client_id               String
+  access_normalization_id String
+  status                  String                            @default("active")
+  ros_id                  Int?
+  ros_name                String?
+  ros_comment             String?
+  ros_status              String?
+  created_at              DateTime                          @default(now())
+  updated_at              DateTime                          @default(now())
+  device                  ict_mikrotik_device               @relation(fields: [device_id], references: [id], onDelete: Cascade)
+  client                  ict_mikrotik_client               @relation(fields: [client_id], references: [id])
+  access_normalization    ict_mikrotik_access_normalization @relation(fields: [access_normalization_id], references: [id])
+
+  @@unique([device_id, client_id, access_normalization_id])
+  @@index([device_id])
+  @@index([company_id])
+  @@index([client_id])
+  @@index([access_normalization_id])
+}

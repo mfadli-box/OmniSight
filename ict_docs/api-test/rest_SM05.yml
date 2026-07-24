@@ -1,0 +1,313 @@
+openapi: 3.0.3
+info:
+  title: OmniSight API - SM05 (Session Management)
+  description: |
+    Endpoint manajemen session user: daftar session aktif, detail, dan revoke.
+    Bagian dari modul **System Manager (SM)**. Hanya bisa diakses oleh **Admin**.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:36665
+    description: Local Development
+
+tags:
+  - name: SM05
+    description: Session Management (Admin only)
+
+paths:
+  /rest/pages/admin/SM05:
+    get:
+      operationId: listSession
+      tags: [SM05]
+      summary: Daftar session aktif
+      description: |
+        Mengambil daftar session aktif dengan pagination, search, dan sorting.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/SearchParam"
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - $ref: "#/components/parameters/SortByParam"
+        - $ref: "#/components/parameters/SortOrderParam"
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionListResponse"
+              example:
+                message: Sessions retrieved
+                data:
+                  - id: "sess-001"
+                    user_id: "usr-001"
+                    username: admin
+                    fullname: Administrator
+                    company_name: ACME Corporation
+                    ip_address: 192.168.1.100
+                    user_agent: Mozilla/5.0
+                    token_preview: "eyJhbG...xxxx"
+                    created_at: "2026-07-21T10:00:00Z"
+                    expires_at: "2026-07-22T10:00:00Z"
+                    is_active: true
+                meta:
+                  page: 1
+                  size: 10
+                  total: 1
+                  total_pages: 1
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /rest/pages/admin/SM05/{id}:
+    get:
+      operationId: getSessionDetail
+      tags: [SM05]
+      summary: Detail session
+      description: Mengambil detail lengkap session termasuk data user.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionDetailResponse"
+              example:
+                message: Session detail retrieved
+                data:
+                  id: "sess-001"
+                  user_id: "usr-001"
+                  username: admin
+                  fullname: Administrator
+                  email: admin@acme.com
+                  phone: "08123456789"
+                  role: admin
+                  is_admin: true
+                  is_hris: false
+                  is_active: true
+                  company_id: "comp-001"
+                  company_name: ACME Corporation
+                  token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  ip_address: 192.168.1.100
+                  user_agent: Mozilla/5.0
+                  created_at: "2026-07-21T10:00:00Z"
+                  expires_at: "2026-07-22T10:00:00Z"
+                  session_active: true
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    delete:
+      operationId: revokeSession
+      tags: [SM05]
+      summary: Revoke session
+      description: |
+        Mencabut/menghapus session user. Session yang di-revoke tidak bisa digunakan lagi.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      responses:
+        "200":
+          description: Session berhasil di-revoke
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: Session revoked successfully
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    IdParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Session ID
+    SearchParam:
+      name: search
+      in: query
+      schema:
+        type: string
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 1
+    SizeParam:
+      name: size
+      in: query
+      schema:
+        type: integer
+        default: 10
+        maximum: 100
+    SortByParam:
+      name: sort_by
+      in: query
+      schema:
+        type: string
+    SortOrderParam:
+      name: sort_order
+      in: query
+      schema:
+        type: string
+        enum: [asc, desc]
+
+  schemas:
+    SessionListItem:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        username:
+          type: string
+        fullname:
+          type: string
+        company_name:
+          type: string
+        ip_address:
+          type: string
+        user_agent:
+          type: string
+        token_preview:
+          type: string
+          description: Preview token (first 10 chars + xxxx)
+        created_at:
+          type: string
+        expires_at:
+          type: string
+        is_active:
+          type: boolean
+
+    SessionDetailItem:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        username:
+          type: string
+        fullname:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        role:
+          type: string
+        is_admin:
+          type: boolean
+        is_hris:
+          type: boolean
+        is_active:
+          type: boolean
+        company_id:
+          type: string
+        company_name:
+          type: string
+        token:
+          type: string
+          description: Full token (hanya untuk admin)
+        ip_address:
+          type: string
+        user_agent:
+          type: string
+        created_at:
+          type: string
+        expires_at:
+          type: string
+        session_active:
+          type: boolean
+
+    GridMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+        size:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer
+
+    SessionListResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SessionListItem"
+        meta:
+          $ref: "#/components/schemas/GridMeta"
+
+    SessionDetailResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        data:
+          $ref: "#/components/schemas/SessionDetailItem"
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+        error:
+          type: string
+        request_id:
+          type: string
+
+  responses:
+    ValidationError:
+      description: Input tidak valid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: Tidak terautentikasi
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: Akses ditolak
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Session tidak ditemukan
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"

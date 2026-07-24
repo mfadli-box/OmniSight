@@ -1,0 +1,96 @@
+enum domain_status {
+  active
+  expired
+  suspended
+  pending_renewal
+  transferring
+  parked
+}
+
+enum dns_record_type {
+  a
+  aaaa
+  cname
+  mx
+  txt
+  srv
+  ns
+  ptr
+  caa
+  soa
+  other
+}
+
+enum dns_record_status {
+  active
+  inactive
+  pending
+}
+
+model ict_domain {
+  id                 String                  @id @default(uuid())
+  company_id         String
+  location_id        String?
+  asset_id           String?
+  domain_name        String
+  registrar          String?
+  registration_date  DateTime?
+  expiry_date        DateTime?
+  auto_renew         Boolean                 @default(false)
+  nameservers        String[]
+  registrant_name    String?
+  registrant_email   String?
+  registrant_org     String?
+  admin_contact      String?
+  tech_contact       String?
+  whois_server       String?
+  status             domain_status           @default(active)
+  is_active          Boolean                 @default(true)
+  created_at         DateTime                @default(now())
+  updated_at         DateTime                @default(now())
+  dns_records        ict_domain_dns[]
+  nameserver_entries ict_domain_nameserver[]
+
+  @@unique([company_id, domain_name])
+  @@index([company_id])
+  @@index([domain_name])
+  @@index([status])
+  @@index([expiry_date])
+}
+
+model ict_domain_dns {
+  id          String            @id @default(uuid())
+  domain_id   String
+  company_id  String
+  record_type dns_record_type   @default(a)
+  name        String
+  value       String
+  ttl         Int               @default(3600)
+  priority    Int?
+  status      dns_record_status @default(active)
+  is_active   Boolean           @default(true)
+  created_at  DateTime          @default(now())
+  updated_at  DateTime          @default(now())
+  domain      ict_domain        @relation(fields: [domain_id], references: [id], onDelete: Cascade)
+
+  @@unique([domain_id, record_type, name, value])
+  @@index([domain_id])
+  @@index([record_type])
+  @@index([name])
+}
+
+model ict_domain_nameserver {
+  id          String     @id @default(uuid())
+  domain_id   String
+  company_id  String
+  hostname    String
+  ip_address  String?
+  description String?
+  is_active   Boolean    @default(true)
+  created_at  DateTime   @default(now())
+  updated_at  DateTime   @default(now())
+  domain      ict_domain @relation(fields: [domain_id], references: [id], onDelete: Cascade)
+
+  @@unique([domain_id, hostname])
+  @@index([domain_id])
+}

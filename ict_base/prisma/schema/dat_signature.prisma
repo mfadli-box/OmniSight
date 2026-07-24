@@ -1,0 +1,69 @@
+enum approval_flag {
+  ALL_APPROVED
+  ANY_APPROVED
+}
+
+enum approval_info {
+  PENDING
+  IN_PROGRESS
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+model dat_approval_step {
+  id        String              @id @default(uuid())
+  type_id   String
+  step      Int
+  condition approval_flag
+  type      dat_signature_type  @relation(fields: [type_id], references: [id], onDelete: Cascade)
+  signature dat_approval_sign[]
+
+  @@unique([type_id, step])
+}
+
+model dat_approval_sign {
+  id      String            @id @default(uuid())
+  step_id String
+  user_id String
+  step    dat_approval_step @relation(fields: [step_id], references: [id], onDelete: Cascade)
+  user    dat_user          @relation(fields: [user_id], references: [id])
+
+  @@unique([step_id, user_id])
+}
+
+model dat_signature_type {
+  id         String              @id @default(uuid())
+  code       String              @unique
+  name       String
+  created_at DateTime            @default(now())
+  updated_at DateTime            @default(now())
+  steps      dat_approval_step[]
+}
+
+model dat_signature_form {
+  id              String               @id @default(uuid())
+  step            Int
+  request_id      String
+  condition       approval_flag
+  status          approval_info        @default(PENDING)
+  created_at      DateTime             @default(now())
+  updated_at      DateTime             @default(now())
+  signature_flags dat_signature_flag[]
+
+  @@unique([request_id, step])
+}
+
+model dat_signature_flag {
+  id         String             @id @default(uuid())
+  form_id    String
+  user_id    String
+  status     approval_info      @default(PENDING)
+  comment    String?
+  created_at DateTime           @default(now())
+  updated_at DateTime           @default(now())
+  form       dat_signature_form @relation(fields: [form_id], references: [id], onDelete: Cascade)
+  user       dat_user           @relation(fields: [user_id], references: [id])
+
+  @@unique([form_id, user_id])
+}

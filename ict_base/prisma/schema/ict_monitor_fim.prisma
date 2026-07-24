@@ -1,0 +1,137 @@
+enum fim_scan_mode {
+  realtime
+  periodic
+  scheduled
+}
+
+enum fim_change_type {
+  added
+  modified
+  deleted
+  moved
+  permission_changed
+  ownership_changed
+}
+
+enum fim_severity {
+  critical
+  high
+  medium
+  low
+}
+
+model ict_monitor_fim_config {
+  id              String              @id @default(uuid())
+  company_id      String
+  code            String
+  name            String
+  description     String?
+  scan_mode       fim_scan_mode       @default(periodic)
+  scan_interval   Int                 @default(3600)
+  watch_paths     String[]
+  ignore_patterns String[]
+  ignore_dirs     String[]
+  check_hash      Boolean             @default(true)
+  check_size      Boolean             @default(true)
+  check_mtime     Boolean             @default(true)
+  check_ctime     Boolean             @default(true)
+  check_perms     Boolean             @default(true)
+  check_owner     Boolean             @default(true)
+  is_enabled      Boolean             @default(true)
+  created_at      DateTime            @default(now())
+  updated_at      DateTime            @default(now())
+  baselines       ict_monitor_fim_baseline[]
+  alerts          ict_monitor_fim_alert[]
+
+  @@unique([company_id, code])
+  @@index([company_id])
+  @@index([is_enabled])
+}
+
+model ict_monitor_fim_baseline {
+  id               String                 @id @default(uuid())
+  config_id        String
+  agent_id         String
+  company_id       String
+  file_path        String
+  file_name        String
+  file_dir         String
+  file_size        BigInt
+  file_hash_md5    String?
+  file_hash_sha1   String?
+  file_hash_sha256 String?
+  permissions      String?
+  owner_uid        Int?
+  owner_gid        Int?
+  inode            BigInt?
+  hard_links       Int?
+  last_modified    DateTime
+  first_seen_at    DateTime               @default(now())
+  last_scan_at     DateTime?
+  is_active        Boolean                @default(true)
+  created_at       DateTime               @default(now())
+  updated_at       DateTime               @default(now())
+  config           ict_monitor_fim_config @relation(fields: [config_id], references: [id])
+  agent            ict_monitor_agent      @relation(fields: [agent_id], references: [id])
+  changes          ict_monitor_fim_change[]
+
+  @@unique([config_id, agent_id, file_path])
+  @@index([config_id])
+  @@index([agent_id])
+  @@index([company_id])
+  @@index([file_path])
+  @@index([file_hash_sha256])
+}
+
+model ict_monitor_fim_change {
+  id              String                   @id @default(uuid())
+  baseline_id     String
+  agent_id        String
+  company_id      String
+  change_type     fim_change_type
+  severity        fim_severity             @default(medium)
+  old_hash        String?
+  new_hash        String?
+  old_size        BigInt?
+  new_size        BigInt?
+  old_permissions String?
+  new_permissions String?
+  old_owner       Int?
+  new_owner       Int?
+  description     String?
+  is_acknowledged Boolean                  @default(false)
+  acknowledged_by String?
+  acknowledged_at DateTime?
+  detected_at     DateTime                 @default(now())
+  baseline        ict_monitor_fim_baseline @relation(fields: [baseline_id], references: [id])
+  agent           ict_monitor_agent        @relation(fields: [agent_id], references: [id])
+
+  @@index([baseline_id, detected_at])
+  @@index([agent_id])
+  @@index([company_id])
+  @@index([change_type])
+  @@index([severity])
+  @@index([detected_at])
+  @@index([is_acknowledged])
+}
+
+model ict_monitor_fim_alert {
+  id              String                 @id @default(uuid())
+  config_id       String
+  company_id      String
+  change_id       String?
+  title           String
+  description     String
+  severity        fim_severity           @default(medium)
+  status          String                 @default("new")
+  assigned_to     String?
+  resolved_at     DateTime?
+  created_at      DateTime               @default(now())
+  config          ict_monitor_fim_config @relation(fields: [config_id], references: [id])
+
+  @@index([config_id])
+  @@index([company_id])
+  @@index([severity])
+  @@index([status])
+  @@index([created_at])
+}

@@ -1,0 +1,75 @@
+enum discovery_status {
+  pending
+  running
+  completed
+  failed
+  cancelled
+}
+
+enum discovery_method {
+  snmp_scan
+  ping_sweep
+  cdp_neighbors
+  lldp_neighbors
+  arp_table
+  dhcp_lease
+  dns_reverse
+  ospf_neighbor
+  bgp_peer
+}
+
+model ict_monitor_discovery_job {
+  id              String                      @id @default(uuid())
+  company_id      String
+  name            String
+  description     String?
+  method          discovery_method            @default(snmp_scan)
+  target_ranges   String[]
+  excluded_ranges String[]
+  snmp_community  String?
+  snmp_version    String                      @default("2c")
+  ping_timeout_ms Int                         @default(1000)
+  max_concurrent  Int                         @default(50)
+  config          Json?
+  status          discovery_status            @default(pending)
+  started_at      DateTime?
+  finished_at     DateTime?
+  devices_found   Int                         @default(0)
+  new_devices     Int                         @default(0)
+  updated_devices Int                         @default(0)
+  triggered_by    String?
+  created_at      DateTime                    @default(now())
+  updated_at      DateTime                    @default(now())
+  results         ict_monitor_discovery_result[]
+
+  @@unique([company_id, name])
+  @@index([company_id])
+  @@index([status])
+  @@index([started_at])
+}
+
+model ict_monitor_discovery_result {
+  id                String                      @id @default(uuid())
+  job_id            String
+  company_id        String
+  device_ip         String
+  hostname          String?
+  mac_address       String?
+  vendor            String?
+  device_type       String?
+  os_fingerprint    String?
+  snmp_sysname      String?
+  snmp_sysdesc      String?
+  open_ports        Int[]
+  is_new            Boolean                     @default(false)
+  network_device_id String?
+  raw_data          Json?
+  discovered_at     DateTime                    @default(now())
+  job               ict_monitor_discovery_job   @relation(fields: [job_id], references: [id])
+
+  @@unique([job_id, device_ip])
+  @@index([job_id])
+  @@index([company_id])
+  @@index([device_ip])
+  @@index([is_new])
+}

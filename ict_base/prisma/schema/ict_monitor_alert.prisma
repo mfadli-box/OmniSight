@@ -1,0 +1,141 @@
+enum alert_rule_status {
+  active
+  disabled
+  deleted
+}
+
+enum alert_condition_type {
+  threshold_above
+  threshold_below
+  threshold_equals
+  change_detected
+  pattern_match
+  absence_detect
+  composite
+}
+
+enum alert_severity {
+  emergency
+  critical
+  high
+  medium
+  low
+  info
+}
+
+enum alert_state {
+  pending
+  firing
+  acknowledged
+  resolved
+  silenced
+}
+
+enum notification_channel {
+  toast
+  email
+  webhook
+  slack
+  teams
+  pagerduty
+}
+
+model ict_monitor_alert_rule {
+  id                String                         @id @default(uuid())
+  company_id        String
+  metric_def_id     String?
+  code              String
+  name              String
+  description       String?
+  entity_type       String
+  condition_type    alert_condition_type           @default(threshold_above)
+  condition_config  Json
+  severity          alert_severity                 @default(medium)
+  cooldown_minutes  Int                            @default(15)
+  repeat_interval   Int?
+  trigger_count     Int                            @default(0)
+  last_triggered_at DateTime?
+  status            alert_rule_status              @default(active)
+  created_by        String?
+  is_enabled        Boolean                        @default(true)
+  created_at        DateTime                       @default(now())
+  updated_at        DateTime                       @default(now())
+  metric_def        ict_monitor_metric_definition? @relation(fields: [metric_def_id], references: [id])
+  firings           ict_monitor_alert_firing[]
+  silences          ict_monitor_alert_silence[]
+
+  @@unique([company_id, code])
+  @@index([company_id])
+  @@index([entity_type])
+  @@index([severity])
+  @@index([status])
+  @@index([metric_def_id])
+}
+
+model ict_monitor_alert_firing {
+  id                String                    @id @default(uuid())
+  rule_id           String
+  company_id        String
+  entity_type       String
+  entity_id         String
+  entity_label      String?
+  state             alert_state               @default(pending)
+  severity          alert_severity
+  trigger_value     Json
+  message           String
+  description       String?
+  acknowledged_by   String?
+  acknowledged_at   DateTime?
+  resolved_at       DateTime?
+  silenced_until    DateTime?
+  escalation_level  Int                       @default(0)
+  notified_users    String[]
+  created_at        DateTime                  @default(now())
+  updated_at        DateTime                  @default(now())
+  rule              ict_monitor_alert_rule    @relation(fields: [rule_id], references: [id])
+
+  @@index([rule_id, created_at])
+  @@index([company_id, state])
+  @@index([entity_type, entity_id])
+  @@index([state])
+  @@index([severity])
+  @@index([created_at])
+}
+
+model ict_monitor_alert_silence {
+  id          String                    @id @default(uuid())
+  rule_id     String
+  company_id  String
+  name        String
+  description String?
+  matchers    Json
+  start_at    DateTime
+  end_at      DateTime
+  created_by  String
+  created_at  DateTime                  @default(now())
+  rule        ict_monitor_alert_rule    @relation(fields: [rule_id], references: [id])
+
+  @@index([rule_id])
+  @@index([company_id])
+  @@index([start_at, end_at])
+}
+
+model ict_monitor_alert_notification {
+  id          String                @id @default(uuid())
+  company_id  String
+  firing_id   String?
+  channel     notification_channel
+  recipient   String
+  subject     String
+  message     String
+  status      String                @default("pending")
+  sent_at     DateTime?
+  error_msg   String?
+  retry_count Int                   @default(0)
+  created_at  DateTime              @default(now())
+
+  @@index([company_id, created_at])
+  @@index([firing_id])
+  @@index([channel])
+  @@index([status])
+}

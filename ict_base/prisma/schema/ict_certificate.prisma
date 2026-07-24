@@ -1,0 +1,64 @@
+enum cert_status {
+  active
+  expired
+  revoked
+  pending_renewal
+  suspended
+}
+
+model ict_cert_type {
+  id           String            @id @default(uuid())
+  code         String            @unique
+  name         String
+  description  String?
+  is_active    Boolean           @default(true)
+  created_at   DateTime          @default(now())
+  certificates ict_certificate[]
+}
+
+model ict_certificate {
+  id                 String                 @id @default(uuid())
+  company_id         String
+  type_id            String
+  asset_id           String?
+  name               String
+  domain             String
+  san                String[]
+  issuer             String
+  serial_number      String?
+  fingerprint_sha256 String?
+  not_before         DateTime
+  not_after          DateTime
+  key_type           String
+  key_size           Int?
+  auto_renew         Boolean                @default(false)
+  renewal_method     String?
+  notification_days  Int                    @default(30)
+  status             cert_status            @default(active)
+  last_checked_at    DateTime?
+  created_at         DateTime               @default(now())
+  updated_at         DateTime               @default(now())
+  cert_type          ict_cert_type          @relation(fields: [type_id], references: [id])
+  asset              ict_asset?             @relation(fields: [asset_id], references: [id])
+  renewal_logs       ict_cert_renewal_log[]
+
+  @@unique([company_id, domain])
+  @@index([company_id])
+  @@index([status])
+  @@index([not_after])
+}
+
+model ict_cert_renewal_log {
+  id             String          @id @default(uuid())
+  certificate_id String
+  action         String
+  old_not_after  DateTime?
+  new_not_after  DateTime?
+  performed_by   String?
+  notes          String?
+  error_message  String?
+  created_at     DateTime        @default(now())
+  certificate    ict_certificate @relation(fields: [certificate_id], references: [id])
+
+  @@index([certificate_id])
+}

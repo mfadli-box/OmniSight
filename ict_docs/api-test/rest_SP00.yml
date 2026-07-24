@@ -1,0 +1,274 @@
+openapi: 3.0.3
+info:
+  title: OmniSight API - SP00 (Login & Authentication)
+  description: |
+    Endpoint autentikasi: login, logout, dan daftar perusahaan HRIS.
+    Bagian dari modul **Session Profile (SP)**.
+  version: 1.0.0
+  contact:
+    name: OmniSight DevSecOps
+
+servers:
+  - url: http://localhost:36665
+    description: Local Development
+
+tags:
+  - name: SP00-Guest
+    description: Public endpoints (tanpa autentikasi)
+  - name: SP00-Auth
+    description: Endpoint autentikasi (Bearer token required)
+
+paths:
+  /rest/guest/SP00:
+    get:
+      operationId: listHrisCompanies
+      tags: [SP00-Guest]
+      summary: Daftar perusahaan HRIS
+      description: Mengambil daftar semua perusahaan yang terdaftar di sistem HRIS.
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HrisCompanyListResponse"
+              example:
+                message: HRIS companies retrieved
+                data:
+                  - id: "comp-001"
+                    code: "ACME"
+                    name: "ACME Corporation"
+                    hris_link: "https://hris.acme.com/auth?u={$U}&p={$P}"
+
+    post:
+      operationId: login
+      tags: [SP00-Guest, SP00-Auth]
+      summary: Login
+      description: |
+        Autentikasi user dengan username dan password.
+        - Jika `company_id` kosong atau "Non-HRIS": login lokal.
+        - Jika `company_id` valid: login via HRIS SOAP service.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+            example:
+              company_id: ""
+              username: admin
+              password: admin123
+      responses:
+        "200":
+          description: Login berhasil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+              example:
+                message: Login successful
+                data:
+                  token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  expires_at: "2026-07-22T12:00:00Z"
+                  user_profile:
+                    id: "usr-001"
+                    username: admin
+                    email: admin@acme.com
+                    fullname: Administrator
+                    phone: "08123456789"
+                    company_id: "comp-001"
+                    company_name: "ACME Corporation"
+                    role: admin
+                    job: IT Manager
+                    is_admin: true
+                    is_hris: false
+                    is_active: true
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "502":
+          $ref: "#/components/responses/ExternalServiceError"
+
+  /rest/pages/SP00:
+    delete:
+      operationId: logout
+      tags: [SP00-Auth]
+      summary: Logout
+      description: Menghapus session berdasarkan Bearer token dari header Authorization.
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Logout berhasil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: Logout successful
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token dari response login
+
+  schemas:
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        company_id:
+          type: string
+          description: ID perusahaan. Kosongkan untuk login lokal.
+          example: ""
+        username:
+          type: string
+          description: Username
+          example: admin
+        password:
+          type: string
+          format: password
+          description: Password
+          example: admin123
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT session token
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        expires_at:
+          type: string
+          format: date-time
+          description: Waktu token kedaluwarsa
+          example: "2026-07-22T12:00:00Z"
+        user_profile:
+          $ref: "#/components/schemas/ProfileData"
+
+    ProfileData:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "usr-001"
+        username:
+          type: string
+          example: admin
+        email:
+          type: string
+          example: admin@acme.com
+        fullname:
+          type: string
+          example: Administrator
+        phone:
+          type: string
+          example: "08123456789"
+        company_id:
+          type: string
+          example: "comp-001"
+        company_name:
+          type: string
+          example: ACME Corporation
+        role:
+          type: string
+          example: admin
+        job:
+          type: string
+          example: IT Manager
+        is_admin:
+          type: boolean
+          example: true
+        is_hris:
+          type: boolean
+          example: false
+        is_active:
+          type: boolean
+          example: true
+
+    HrisCompanyItem:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "comp-001"
+        code:
+          type: string
+          example: ACME
+        name:
+          type: string
+          example: ACME Corporation
+        hris_link:
+          type: string
+          example: "https://hris.acme.com/auth?u={$U}&p={$P}"
+
+    HrisCompanyListResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: HRIS companies retrieved
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/HrisCompanyItem"
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Success
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+          example: VALIDATION_ERROR
+        error:
+          type: string
+          example: Username and password are required
+        request_id:
+          type: string
+          example: "550e8400-e29b-41d4-a716-446655440000"
+
+  responses:
+    ValidationError:
+      description: Input tidak valid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            code: VALIDATION_ERROR
+            error: Username and password are required
+            request_id: "550e8400-e29b-41d4-a716-446655440000"
+    Unauthorized:
+      description: Tidak terautentikasi
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            code: UNAUTHORIZED
+            error: Invalid credentials
+            request_id: "550e8400-e29b-41d4-a716-446655440000"
+    ExternalServiceError:
+      description: Service eksternal tidak terjangkau
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            code: EXTERNAL_SERVICE_ERROR
+            error: Failed to connect to HRIS server
+            request_id: "550e8400-e29b-41d4-a716-446655440000"

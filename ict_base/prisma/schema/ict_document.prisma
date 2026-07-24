@@ -1,0 +1,269 @@
+enum document_status {
+  draft
+  in_review
+  approved
+  published
+  archived
+}
+
+enum document_visibility {
+  private
+  internal
+  public
+}
+
+enum document_format {
+  markdown
+  html
+  json
+}
+
+enum document_permission {
+  view
+  comment
+  edit
+}
+
+enum document_priority {
+  low
+  medium
+  high
+  urgent
+}
+
+enum document_approval {
+  pending
+  in_progress
+  approved
+  rejected
+}
+
+model ict_doc_type {
+  id          String    @id @default(uuid())
+  code        String    @unique
+  name        String
+  description String?
+  icon        String?
+  is_active   Boolean   @default(true)
+  created_at  DateTime  @default(now())
+  documents   ict_doc[]
+}
+
+model ict_doc_category {
+  id          String             @id @default(uuid())
+  company_id  String
+  parent_id   String?
+  code        String
+  name        String
+  description String?
+  sort_order  Int                @default(0)
+  is_active   Boolean            @default(true)
+  created_at  DateTime           @default(now())
+  updated_at  DateTime           @default(now())
+  parent      ict_doc_category?  @relation("doc_category_hierarchy", fields: [parent_id], references: [id])
+  children    ict_doc_category[] @relation("doc_category_hierarchy")
+  documents   ict_doc[]
+
+  @@unique([company_id, code])
+}
+
+model ict_doc {
+  id                  String                 @id @default(uuid())
+  company_id          String
+  type_id             String
+  category_id         String?
+  parent_id           String?
+  code                String
+  title               String
+  slug                String
+  description         String?
+  content             String
+  content_format      document_format        @default(markdown)
+  version             Int                    @default(1)
+  status              document_status        @default(draft)
+  visibility          document_visibility    @default(private)
+  author_id           String
+  owner_id            String
+  approval_required   Boolean                @default(false)
+  is_pinned           Boolean                @default(false)
+  is_controlled       Boolean                @default(false)
+  effective_date      DateTime?
+  expiry_date         DateTime?
+  review_cycle_months Int?
+  next_review_date    DateTime?
+  last_reviewed_by    String?
+  last_reviewed_at    DateTime?
+  department          String?
+  classification      String?
+  view_count          Int                    @default(0)
+  last_viewed_at      DateTime?
+  published_at        DateTime?
+  archived_at         DateTime?
+  created_at          DateTime               @default(now())
+  updated_at          DateTime               @default(now())
+  doc_type            ict_doc_type           @relation(fields: [type_id], references: [id])
+  category            ict_doc_category?      @relation(fields: [category_id], references: [id])
+  parent              ict_doc?               @relation("doc_hierarchy", fields: [parent_id], references: [id])
+  children            ict_doc[]              @relation("doc_hierarchy")
+  author              dat_user               @relation("doc_author", fields: [author_id], references: [id])
+  owner               dat_user               @relation("doc_owner", fields: [owner_id], references: [id])
+  reviewer            dat_user?              @relation("doc_reviewer", fields: [last_reviewed_by], references: [id])
+  versions            ict_doc_version[]
+  shares              ict_doc_share[]
+  publish             ict_doc_publish?
+  todos               ict_doc_todo[]
+  template            ict_doc_template?
+  approvals           ict_doc_approval[]
+  read_receipts       ict_doc_read_receipt[]
+
+  @@unique([company_id, code])
+  @@unique([company_id, slug])
+  @@index([company_id])
+  @@index([type_id])
+  @@index([status])
+  @@index([author_id])
+  @@index([owner_id])
+  @@index([is_controlled])
+  @@index([next_review_date])
+}
+
+model ict_doc_version {
+  id          String   @id @default(uuid())
+  doc_id      String
+  version     Int
+  title       String
+  content     String
+  change_note String?
+  author_id   String
+  created_at  DateTime @default(now())
+  doc         ict_doc  @relation(fields: [doc_id], references: [id], onDelete: Cascade)
+  author      dat_user @relation(fields: [author_id], references: [id])
+
+  @@unique([doc_id, version])
+  @@index([doc_id])
+}
+
+model ict_doc_share {
+  id          String              @id @default(uuid())
+  doc_id      String
+  user_id     String?
+  share_token String?
+  permission  document_permission @default(view)
+  expires_at  DateTime?
+  created_by  String
+  created_at  DateTime            @default(now())
+  doc         ict_doc             @relation(fields: [doc_id], references: [id], onDelete: Cascade)
+  user        dat_user?           @relation("doc_share_user", fields: [user_id], references: [id])
+  creator     dat_user            @relation("doc_share_creator", fields: [created_by], references: [id])
+
+  @@unique([doc_id, user_id])
+  @@unique([share_token])
+  @@index([doc_id])
+}
+
+model ict_doc_publish {
+  id             String   @id @default(uuid())
+  doc_id         String
+  publish_token  String
+  custom_slug    String?
+  is_enabled     Boolean  @default(true)
+  password       String?
+  allow_indexing Boolean  @default(false)
+  view_count     Int      @default(0)
+  published_at   DateTime @default(now())
+  created_at     DateTime @default(now())
+  updated_at     DateTime @default(now())
+  doc            ict_doc  @relation(fields: [doc_id], references: [id], onDelete: Cascade)
+
+  @@unique([doc_id])
+  @@unique([publish_token])
+  @@unique([custom_slug])
+}
+
+model ict_doc_todo {
+  id          String            @id @default(uuid())
+  doc_id      String
+  parent_id   String?
+  content     String
+  is_checked  Boolean           @default(false)
+  assigned_to String?
+  due_date    DateTime?
+  priority    document_priority @default(medium)
+  sort_order  Int               @default(0)
+  created_at  DateTime          @default(now())
+  updated_at  DateTime          @default(now())
+  doc         ict_doc           @relation(fields: [doc_id], references: [id], onDelete: Cascade)
+  parent      ict_doc_todo?     @relation("todo_hierarchy", fields: [parent_id], references: [id])
+  children    ict_doc_todo[]    @relation("todo_hierarchy")
+  assignee    dat_user?         @relation(fields: [assigned_to], references: [id])
+
+  @@index([doc_id])
+  @@index([assigned_to])
+  @@index([due_date])
+}
+
+model ict_doc_template {
+  id            String   @id @default(uuid())
+  doc_id        String
+  fields        Json
+  instructions  String?
+  is_repeatable Boolean  @default(false)
+  created_at    DateTime @default(now())
+  doc           ict_doc  @relation(fields: [doc_id], references: [id], onDelete: Cascade)
+
+  @@unique([doc_id])
+}
+
+model ict_doc_approval {
+  id                String                  @id @default(uuid())
+  doc_id            String
+  signature_type_id String?
+  status            document_approval       @default(pending)
+  requested_by      String
+  requested_at      DateTime                @default(now())
+  completed_at      DateTime?
+  notes             String?
+  created_at        DateTime                @default(now())
+  doc               ict_doc                 @relation(fields: [doc_id], references: [id])
+  requested_by_user dat_user                @relation(fields: [requested_by], references: [id])
+  steps             ict_doc_approval_step[]
+
+  @@index([doc_id])
+  @@index([status])
+}
+
+model ict_doc_approval_step {
+  id          String            @id @default(uuid())
+  approval_id String
+  step        Int
+  user_id     String
+  status      document_approval @default(pending)
+  comment     String?
+  acted_at    DateTime?
+  created_at  DateTime          @default(now())
+  approval    ict_doc_approval  @relation(fields: [approval_id], references: [id], onDelete: Cascade)
+  user        dat_user          @relation(fields: [user_id], references: [id])
+
+  @@unique([approval_id, step])
+  @@index([user_id])
+}
+
+model ict_doc_read_receipt {
+  id              String    @id @default(uuid())
+  doc_id          String
+  user_id         String
+  version_read    Int
+  read_at         DateTime  @default(now())
+  acknowledged    Boolean   @default(false)
+  acknowledged_at DateTime?
+  ip_address      String?
+  user_agent      String?
+  created_at      DateTime  @default(now())
+  doc             ict_doc   @relation(fields: [doc_id], references: [id], onDelete: Cascade)
+  user            dat_user  @relation(fields: [user_id], references: [id])
+
+  @@unique([doc_id, user_id])
+  @@index([doc_id])
+  @@index([user_id])
+  @@index([acknowledged])
+}

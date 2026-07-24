@@ -1,0 +1,765 @@
+openapi: 3.0.3
+info:
+  title: OmniSight API - SM01 (User Management)
+  description: |
+    Endpoint manajemen user: CRUD user, asignasi perusahaan, dan privilege.
+    Bagian dari modul **System Manager (SM)**. Hanya bisa diakses oleh **Admin**.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:36665
+    description: Local Development
+
+tags:
+  - name: SM01
+    description: User Management (Admin only)
+
+paths:
+  /rest/pages/admin/SM01:
+    get:
+      operationId: listUser
+      tags: [SM01]
+      summary: Daftar user
+      description: |
+        Mengambil daftar user dengan pagination, search, dan sorting.
+        Menggunakan `ActionMeta` sebagai query parameter.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/SearchParam"
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - $ref: "#/components/parameters/SortByParam"
+        - $ref: "#/components/parameters/SortOrderParam"
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+    post:
+      operationId: createUser
+      tags: [SM01]
+      summary: Buat user baru
+      description: Membuat user baru dengan data lengkap. Password akan di-hash.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCreateRequest"
+            example:
+              username: johndoe
+              email: john@acme.com
+              password: pass1234
+              fullname: John Doe
+              phone: "08123456789"
+              company_id: "comp-001"
+              role: staff
+              job: Staff IT
+              is_admin: false
+              is_hris: false
+              is_active: true
+      responses:
+        "201":
+          description: User berhasil dibuat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: User created successfully
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /rest/pages/admin/SM01/{id}:
+    put:
+      operationId: updateUser
+      tags: [SM01]
+      summary: Update user
+      description: Memperbarui data user berdasarkan ID.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdateRequest"
+            example:
+              email: john.updated@acme.com
+              fullname: John Doe Updated
+              phone: "08987654321"
+              role: analyst
+              job: Security Analyst
+              is_admin: false
+              is_active: true
+      responses:
+        "200":
+          description: User berhasil diupdate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: User updated successfully
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /rest/pages/admin/SM01/hris:
+    get:
+      operationId: listHrisCompany
+      tags: [SM01]
+      summary: Daftar perusahaan HRIS
+      description: Mengambil daftar perusahaan HRIS untuk dropdown.
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HrisCompanyListResponse"
+
+  /rest/pages/admin/SM01/company:
+    get:
+      operationId: listAllCompany
+      tags: [SM01]
+      summary: Daftar semua perusahaan
+      description: Mengambil daftar perusahaan untuk dropdown select.
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanySelectListResponse"
+
+  /rest/pages/admin/SM01/module:
+    get:
+      operationId: listAllModule
+      tags: [SM01]
+      summary: Daftar semua modul
+      description: Mengambil daftar modul untuk dropdown select.
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModuleSelectListResponse"
+
+  /rest/pages/admin/SM01/{id}/company:
+    get:
+      operationId: listUserCompany
+      tags: [SM01]
+      summary: Daftar perusahaan user
+      description: Mengambil daftar perusahaan yang dimiliki user tertentu.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserCompanyListResponse"
+
+    post:
+      operationId: createUserCompany
+      tags: [SM01]
+      summary: Tambah perusahaan ke user
+      description: Menugaskan perusahaan baru ke user.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCompanyRequest"
+            example:
+              company_id: "comp-002"
+              is_active: true
+      responses:
+        "201":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: Company assigned successfully
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  /rest/pages/admin/SM01/{id}/company/{companyId}:
+    put:
+      operationId: updateUserCompany
+      tags: [SM01]
+      summary: Update perusahaan user
+      description: Memperbarui status perusahaan user.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID perusahaan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCompanyRequest"
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: Company updated successfully
+
+    delete:
+      operationId: deleteUserCompany
+      tags: [SM01]
+      summary: Hapus perusahaan dari user
+      description: Menghapus hubungan user dengan perusahaan.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: Company removed successfully
+
+  /rest/pages/admin/SM01/{id}/privilege:
+    get:
+      operationId: listUserPrivilege
+      tags: [SM01]
+      summary: Daftar privilege user
+      description: Mengambil daftar privilege (module + level) untuk user.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPrivilegeListResponse"
+
+    post:
+      operationId: createUserPrivilege
+      tags: [SM01]
+      summary: Tambah privilege user
+      description: Menetapkan privilege modul ke user.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserPrivilegeRequest"
+            example:
+              user_company_id: "uc-001"
+              module_id: "mod-005"
+              level: view
+      responses:
+        "201":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: Privilege assigned successfully
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  /rest/pages/admin/SM01/{id}/privilege/{privilegeId}:
+    put:
+      operationId: updateUserPrivilege
+      tags: [SM01]
+      summary: Update privilege user
+      description: Memperbarui level privilege user.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+        - name: privilegeId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID privilege
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserPrivilegeUpdateRequest"
+            example:
+              level: post
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: Privilege updated successfully
+
+    delete:
+      operationId: deleteUserPrivilege
+      tags: [SM01]
+      summary: Hapus privilege user
+      description: Menghapus privilege modul dari user.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+        - name: privilegeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: Privilege removed successfully
+
+  /rest/pages/admin/SM01/assign:
+    post:
+      operationId: assignCompany
+      tags: [SM01]
+      summary: Asign perusahaan ke user
+      description: Menugaskan perusahaan ke user (method alternatif).
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [company_id]
+              properties:
+                company_id:
+                  type: string
+                  example: "comp-001"
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: Company assigned successfully
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    IdParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: User ID
+    SearchParam:
+      name: search
+      in: query
+      schema:
+        type: string
+      description: Pencarian teks
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 1
+    SizeParam:
+      name: size
+      in: query
+      schema:
+        type: integer
+        default: 10
+        maximum: 100
+    SortByParam:
+      name: sort_by
+      in: query
+      schema:
+        type: string
+    SortOrderParam:
+      name: sort_order
+      in: query
+      schema:
+        type: string
+        enum: [asc, desc]
+
+  schemas:
+    UserListItem:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        fullname:
+          type: string
+        phone:
+          type: string
+        company_id:
+          type: string
+        role:
+          type: string
+        job:
+          type: string
+        is_admin:
+          type: boolean
+        is_hris:
+          type: boolean
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+
+    UserCreateRequest:
+      type: object
+      required: [username, email, password, fullname]
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        fullname:
+          type: string
+        phone:
+          type: string
+        company_id:
+          type: string
+        role:
+          type: string
+        job:
+          type: string
+        is_admin:
+          type: boolean
+          default: false
+        is_hris:
+          type: boolean
+          default: false
+        is_active:
+          type: boolean
+          default: true
+
+    UserUpdateRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        fullname:
+          type: string
+        password:
+          type: string
+          format: password
+        phone:
+          type: string
+        role:
+          type: string
+        job:
+          type: string
+        is_admin:
+          type: boolean
+        is_hris:
+          type: boolean
+        is_active:
+          type: boolean
+
+    UserCompanyRequest:
+      type: object
+      properties:
+        company_id:
+          type: string
+        is_active:
+          type: boolean
+          nullable: true
+
+    UserPrivilegeRequest:
+      type: object
+      required: [user_company_id, module_id]
+      properties:
+        user_company_id:
+          type: string
+        module_id:
+          type: string
+        level:
+          type: string
+          enum: [hide, view, book, post]
+          default: view
+
+    UserPrivilegeUpdateRequest:
+      type: object
+      required: [level]
+      properties:
+        level:
+          type: string
+          enum: [hide, view, book, post]
+
+    GridMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+        size:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer
+
+    UserListResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserListItem"
+        meta:
+          $ref: "#/components/schemas/GridMeta"
+
+    UserCompanyListItem:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        company_id:
+          type: string
+        company_name:
+          type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+
+    UserCompanyListResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserCompanyListItem"
+
+    UserPrivilegeListItem:
+      type: object
+      properties:
+        id:
+          type: string
+        user_company_id:
+          type: string
+        module_id:
+          type: string
+        company_name:
+          type: string
+        module_code:
+          type: string
+        module_name:
+          type: string
+        level:
+          type: string
+        created_at:
+          type: string
+
+    UserPrivilegeListResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserPrivilegeListItem"
+
+    HrisCompanyItem:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        name:
+          type: string
+        hris_link:
+          type: string
+
+    HrisCompanyListResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/HrisCompanyItem"
+
+    CompanySelectItem:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+
+    CompanySelectListResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CompanySelectItem"
+
+    ModuleSelectItem:
+      type: object
+      properties:
+        id:
+          type: string
+        parent_id:
+          type: string
+        code:
+          type: string
+        name:
+          type: string
+        path:
+          type: string
+        is_page:
+          type: boolean
+        is_active:
+          type: boolean
+
+    ModuleSelectListResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModuleSelectItem"
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+        error:
+          type: string
+        request_id:
+          type: string
+
+  responses:
+    ValidationError:
+      description: Input tidak valid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: Tidak terautentikasi
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: Akses ditolak (non-admin)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Resource tidak ditemukan
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Conflict:
+      description: Data duplikat
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"

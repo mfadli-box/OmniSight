@@ -1,0 +1,359 @@
+enum policy_status {
+  draft
+  under_review
+  approved
+  published
+  archived
+  under_revision
+}
+
+enum evidence_status {
+  pending
+  collected
+  verified
+  expired
+  rejected
+}
+
+enum sop_category {
+  access_control
+  incident_response
+  backup_recovery
+  change_management
+  network_security
+  physical_security
+  human_resources
+  vendor_management
+  data_protection
+  business_continuity
+  monitoring_operations
+  vulnerability_management
+  configuration_management
+  asset_management
+  other
+}
+
+enum metric_frequency {
+  daily
+  weekly
+  monthly
+  quarterly
+  yearly
+}
+
+model ict_iso_policy {
+  id                  String          @id @default(uuid())
+  company_id          String
+  doc_id              String?
+  code                String
+  title               String
+  description         String?
+  policy_number       String?
+  version             Int             @default(1)
+  status              policy_status   @default(draft)
+  owner_id            String
+  approver_id         String?
+  effective_date      DateTime?
+  review_date         DateTime?
+  review_cycle_months Int             @default(12)
+  scope               String?
+  objective           String?
+  is_mandatory        Boolean         @default(true)
+  created_at          DateTime        @default(now())
+  updated_at          DateTime        @default(now())
+  versions            ict_iso_policy_version[]
+  controls            ict_iso_policy_control[]
+  sop_list            ict_iso_sop[]
+
+  @@unique([company_id, code])
+  @@index([company_id])
+  @@index([status])
+  @@index([owner_id])
+  @@index([review_date])
+}
+
+model ict_iso_policy_version {
+  id          String          @id @default(uuid())
+  policy_id   String
+  version     Int
+  title       String
+  content     String
+  change_note String?
+  author_id   String
+  approved_by String?
+  approved_at DateTime?
+  created_at  DateTime        @default(now())
+  policy      ict_iso_policy  @relation(fields: [policy_id], references: [id], onDelete: Cascade)
+
+  @@unique([policy_id, version])
+  @@index([policy_id])
+}
+
+model ict_iso_policy_control {
+  id          String          @id @default(uuid())
+  policy_id   String
+  control_id  String
+  notes       String?
+  created_at  DateTime        @default(now())
+  policy      ict_iso_policy  @relation(fields: [policy_id], references: [id], onDelete: Cascade)
+
+  @@unique([policy_id, control_id])
+  @@index([policy_id])
+  @@index([control_id])
+}
+
+model ict_iso_sop {
+  id                  String          @id @default(uuid())
+  company_id          String
+  doc_id              String?
+  policy_id           String?
+  code                String
+  title               String
+  description         String?
+  sop_number          String?
+  category            sop_category    @default(other)
+  version             Int             @default(1)
+  status              policy_status   @default(draft)
+  owner_id            String
+  approver_id         String?
+  effective_date      DateTime?
+  review_date         DateTime?
+  review_cycle_months Int             @default(12)
+  scope               String?
+  objective           String?
+  steps_count         Int             @default(0)
+  is_mandatory        Boolean         @default(true)
+  created_at          DateTime        @default(now())
+  updated_at          DateTime        @default(now())
+  versions            ict_iso_sop_version[]
+  steps               ict_iso_sop_step[]
+  executions          ict_iso_sop_execution[]
+  evidences           ict_iso_evidence[]
+  policy              ict_iso_policy? @relation(fields: [policy_id], references: [id])
+
+  @@unique([company_id, code])
+  @@index([company_id])
+  @@index([category])
+  @@index([status])
+  @@index([owner_id])
+  @@index([review_date])
+  @@index([policy_id])
+}
+
+model ict_iso_sop_version {
+  id          String      @id @default(uuid())
+  sop_id      String
+  version     Int
+  title       String
+  content     String
+  change_note String?
+  author_id   String
+  approved_by String?
+  approved_at DateTime?
+  created_at  DateTime    @default(now())
+  sop         ict_iso_sop @relation(fields: [sop_id], references: [id], onDelete: Cascade)
+
+  @@unique([sop_id, version])
+  @@index([sop_id])
+}
+
+model ict_iso_sop_step {
+  id            String      @id @default(uuid())
+  sop_id        String
+  step_number   Int
+  title         String
+  description   String
+  warning       String?
+  tip           String?
+  image_url     String?
+  role_required String?
+  is_critical   Boolean     @default(false)
+  created_at    DateTime    @default(now())
+  updated_at    DateTime    @default(now())
+  sop           ict_iso_sop @relation(fields: [sop_id], references: [id], onDelete: Cascade)
+
+  @@unique([sop_id, step_number])
+  @@index([sop_id])
+}
+
+model ict_iso_sop_execution {
+  id            String       @id @default(uuid())
+  sop_id        String
+  company_id    String
+  executed_by   String
+  started_at    DateTime     @default(now())
+  finished_at   DateTime?
+  status        String       @default("in_progress")
+  notes         String?
+  deviations    String?
+  evidence_urls String[]
+  duration_min  Int?
+  sop           ict_iso_sop  @relation(fields: [sop_id], references: [id])
+
+  @@index([sop_id])
+  @@index([company_id])
+  @@index([executed_by])
+  @@index([started_at])
+  @@index([status])
+}
+
+model ict_iso_evidence {
+  id              String          @id @default(uuid())
+  company_id      String
+  control_id      String?
+  sop_id          String?
+  finding_id      String?
+  code            String
+  title           String
+  description     String?
+  evidence_type   String
+  source_system   String?
+  file_urls       String[]
+  collected_by    String
+  collected_at    DateTime        @default(now())
+  verified_by     String?
+  verified_at     DateTime?
+  status          evidence_status @default(pending)
+  expiry_date     DateTime?
+  notes           String?
+  created_at      DateTime        @default(now())
+  updated_at      DateTime        @default(now())
+  sop             ict_iso_sop?    @relation(fields: [sop_id], references: [id])
+
+  @@unique([company_id, code])
+  @@index([company_id])
+  @@index([control_id])
+  @@index([sop_id])
+  @@index([status])
+  @@index([collected_at])
+  @@index([expiry_date])
+}
+
+model ict_iso_security_metric {
+  id                 String           @id @default(uuid())
+  company_id         String
+  code               String
+  name               String
+  description        String?
+  category           String
+  unit               String           @default("count")
+  frequency          metric_frequency @default(monthly)
+  target_value       Decimal?
+  warning_threshold  Decimal?
+  critical_threshold Decimal?
+  formula            String?
+  data_source        String?
+  is_active          Boolean          @default(true)
+  created_at         DateTime         @default(now())
+  updated_at         DateTime         @default(now())
+  values             ict_iso_security_metric_value[]
+  report_items       ict_iso_report_metric[]
+
+  @@unique([company_id, code])
+  @@index([company_id])
+  @@index([category])
+}
+
+model ict_iso_security_metric_value {
+  id            String                  @id @default(uuid())
+  metric_id     String
+  company_id    String
+  period_start  DateTime                @db.Date
+  period_end    DateTime                @db.Date
+  actual_value  Decimal
+  target_value  Decimal?
+  is_met        Boolean
+  notes         String?
+  data_source   String?
+  recorded_at   DateTime                @default(now())
+  metric        ict_iso_security_metric @relation(fields: [metric_id], references: [id])
+
+  @@unique([metric_id, period_start])
+  @@index([metric_id, period_start])
+  @@index([company_id, period_start])
+}
+
+model ict_iso_report {
+  id              String   @id @default(uuid())
+  company_id      String
+  code            String
+  title           String
+  report_type     String
+  period_start    DateTime @db.Date
+  period_end      DateTime @db.Date
+  generated_by    String
+  status          String   @default("draft")
+  file_path       String?
+  file_type       String   @default("pdf")
+  summary         String?
+  metrics_summary Json?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @default(now())
+  metrics         ict_iso_report_metric[]
+  sections        ict_iso_report_section[]
+
+  @@unique([company_id, code])
+  @@index([company_id])
+  @@index([report_type])
+  @@index([period_start])
+}
+
+model ict_iso_report_metric {
+  id         String                  @id @default(uuid())
+  report_id  String
+  metric_id  String
+  value_id   String?
+  actual     Decimal
+  target     Decimal?
+  is_met     Boolean
+  trend      String?
+  notes      String?
+  report     ict_iso_report          @relation(fields: [report_id], references: [id], onDelete: Cascade)
+  metric     ict_iso_security_metric @relation(fields: [metric_id], references: [id])
+
+  @@unique([report_id, metric_id])
+  @@index([report_id])
+  @@index([metric_id])
+}
+
+model ict_iso_report_section {
+  id           String         @id @default(uuid())
+  report_id    String
+  title        String
+  content      String
+  sort_order   Int            @default(0)
+  data_source  String?
+  chart_config Json?
+  created_at   DateTime       @default(now())
+  report       ict_iso_report @relation(fields: [report_id], references: [id], onDelete: Cascade)
+
+  @@index([report_id])
+}
+
+model ict_iso_document_register {
+  id                  String          @id @default(uuid())
+  company_id          String
+  doc_number          String
+  title               String
+  doc_type            String
+  category            String?
+  version             Int             @default(1)
+  status              policy_status   @default(draft)
+  owner_id            String
+  approver_id         String?
+  effective_date      DateTime?
+  review_date         DateTime?
+  review_cycle_months Int             @default(12)
+  distribution        String[]
+  confidentiality     String          @default("internal")
+  is_controlled       Boolean         @default(true)
+  created_at          DateTime        @default(now())
+  updated_at          DateTime        @default(now())
+
+  @@unique([company_id, doc_number])
+  @@index([company_id])
+  @@index([doc_type])
+  @@index([status])
+  @@index([owner_id])
+  @@index([review_date])
+}

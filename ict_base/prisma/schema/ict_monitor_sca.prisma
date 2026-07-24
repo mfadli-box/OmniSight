@@ -1,0 +1,113 @@
+enum sca_policy_status {
+  draft
+  active
+  deprecated
+}
+
+enum sca_scan_status {
+  pending
+  running
+  completed
+  failed
+  cancelled
+}
+
+enum sca_check_result {
+  pass
+  fail
+  not_applicable
+  error
+}
+
+model ict_monitor_sca_policy {
+  id                String               @id @default(uuid())
+  company_id        String
+  code              String
+  name              String
+  description       String?
+  benchmark_name    String
+  benchmark_version String?
+  platform          String[]
+  policy_file_url   String?
+  total_checks      Int                  @default(0)
+  status            sca_policy_status    @default(draft)
+  is_enabled        Boolean              @default(true)
+  created_at        DateTime             @default(now())
+  updated_at        DateTime             @default(now())
+  checks            ict_monitor_sca_check[]
+  scans             ict_monitor_sca_scan[]
+
+  @@unique([company_id, code])
+  @@index([company_id])
+  @@index([benchmark_name])
+  @@index([status])
+}
+
+model ict_monitor_sca_check {
+  id                String                 @id @default(uuid())
+  policy_id         String
+  check_id          String
+  title             String
+  description       String?
+  rationale         String?
+  remediation       String?
+  severity          severity_level         @default(medium)
+  compliance_url    String?
+  condition         Json?
+  is_enabled        Boolean                @default(true)
+  sort_order        Int                    @default(0)
+  created_at        DateTime               @default(now())
+  updated_at        DateTime               @default(now())
+  policy            ict_monitor_sca_policy @relation(fields: [policy_id], references: [id])
+  scan_results      ict_monitor_sca_result[]
+
+  @@unique([policy_id, check_id])
+  @@index([policy_id])
+  @@index([severity])
+}
+
+model ict_monitor_sca_scan {
+  id                   String                 @id @default(uuid())
+  policy_id            String
+  company_id           String
+  agent_id             String
+  status               sca_scan_status        @default(pending)
+  started_at           DateTime?
+  finished_at          DateTime?
+  total_checks         Int                    @default(0)
+  passed_count         Int                    @default(0)
+  failed_count         Int                    @default(0)
+  not_applicable_count Int                    @default(0)
+  error_count          Int                    @default(0)
+  compliance_score     Decimal?
+  triggered_by         String?
+  created_at           DateTime               @default(now())
+  updated_at           DateTime               @default(now())
+  policy               ict_monitor_sca_policy @relation(fields: [policy_id], references: [id])
+  agent                ict_monitor_agent      @relation(fields: [agent_id], references: [id])
+  results              ict_monitor_sca_result[]
+
+  @@index([policy_id])
+  @@index([company_id])
+  @@index([agent_id])
+  @@index([status])
+  @@index([created_at])
+}
+
+model ict_monitor_sca_result {
+  id                  String                @id @default(uuid())
+  scan_id             String
+  check_id            String
+  result              sca_check_result
+  actual_value        String?
+  reason              String?
+  remediation_applied Boolean               @default(false)
+  created_at          DateTime              @default(now())
+  scan                ict_monitor_sca_scan  @relation(fields: [scan_id], references: [id])
+  check               ict_monitor_sca_check @relation(fields: [check_id], references: [id])
+
+  @@unique([scan_id, check_id])
+  @@index([scan_id])
+  @@index([check_id])
+  @@index([result])
+}

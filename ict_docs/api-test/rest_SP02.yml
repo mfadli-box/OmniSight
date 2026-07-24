@@ -1,0 +1,111 @@
+openapi: 3.0.3
+info:
+  title: OmniSight API - SP02 (Change Password)
+  description: |
+    Endpoint ubah password user yang sedang login.
+    Bagian dari modul **Session Profile (SP)**.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:36665
+    description: Local Development
+
+tags:
+  - name: SP02
+    description: Change Password (Bearer token required)
+
+paths:
+  /rest/pages/SP02:
+    put:
+      operationId: changePassword
+      tags: [SP02]
+      summary: Ubah password
+      description: |
+        Mengubah password user yang sedang login.
+        Wajib mengirimkan `current_password` dan `new_password`.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordRequest"
+            example:
+              current_password: admin123
+              new_password: newpass456
+      responses:
+        "200":
+          description: Password berhasil diubah
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: Password changed successfully
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ChangePasswordRequest:
+      type: object
+      required: [current_password, new_password]
+      properties:
+        current_password:
+          type: string
+          format: password
+          description: Password saat ini
+          example: admin123
+        new_password:
+          type: string
+          format: password
+          description: Password baru
+          example: newpass456
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Success
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+        error:
+          type: string
+        request_id:
+          type: string
+
+  responses:
+    ValidationError:
+      description: Input tidak valid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            code: VALIDATION_ERROR
+            error: Current and new password are required
+            request_id: "550e8400-e29b-41d4-a716-446655440000"
+    Unauthorized:
+      description: Tidak terautentikasi
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            code: UNAUTHORIZED
+            error: Unauthorized
+            request_id: "550e8400-e29b-41d4-a716-446655440000"
