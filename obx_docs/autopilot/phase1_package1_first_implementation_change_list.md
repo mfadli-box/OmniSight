@@ -83,3 +83,26 @@ Dokumen ini menjadi jembatan dari perencanaan ke eksekusi coding untuk modul int
 - phase1_package1_module_actual_file_map.md
 - phase1_backend_coding_plan.md
 - ai_runbook.md
+
+## Status Eksekusi Saat Ini
+
+1. Langkah 1 selesai: route SM01 diurutkan agar static route didaftarkan sebelum route dinamis parameter.
+2. Validasi backend lulus: `cd obx_rest && go build ./...`.
+3. Validasi frontend terfokus lulus: `npx eslint` untuk file page SM01, SM02, SM03, SP01, SP02, SP03 menghasilkan `SCOPED_LINT_OK`.
+4. Catatan: lint global workspace masih memiliki technical debt di file lain di luar scope Paket 1 batch ini.
+5. Review DTO/interface dan repository-usecase SM01-SM03 selesai.
+6. Perbaikan backend diterapkan pada sort mapping `SM03` agar `ORDER BY` memakai kolom eksplisit (`m.code`, `m.name`, `cm.created_at`) dan menghindari ambigu.
+7. Validasi backend pasca-perbaikan lulus: `cd obx_rest && go build ./...`.
+8. Hardening handler SM01-SM03 selesai: validasi parameter path wajib (`id`, `companyId`, `moduleId`, `areaId`, `privilegeId`) ditambahkan pada handler.
+9. Sinkronisasi dokumentasi batch pertama selesai untuk SM01 dan SM02 (REST + SITE, blueprint + guide).
+10. Catatan: smoke test manual login/profile/company flow belum dijalankan pada sesi ini.
+11. Hardening tambahan selesai pada handler SP01-SP03 untuk menghindari panic type assertion context session (`userId`, `isAdmin`).
+12. Sinkronisasi dokumentasi lanjutan selesai untuk SM03 serta SP01, SP02, SP03 (REST + SITE, blueprint + guide).
+13. Technical debt lint global frontend telah dibersihkan; `npm run lint` di `obx_site` lulus tanpa temuan.
+14. Validasi frontend produksi lulus: `cd obx_site && npm run build`.
+15. Sinkronisasi dokumentasi batch lanjutan selesai untuk SM04 dan SM05 (REST + SITE, blueprint + guide).
+16. Smoke test autentik berhasil untuk login UI admin dengan akun `admin` dan password yang diberikan pada sesi ini.
+17. Smoke test halaman inti berhasil: SP01, SP02, SP03, SM01, SM02, SM03, SM04, dan SM05 dapat diakses setelah session aktif.
+18. Smoke test data demo berhasil: satu demo company dibuat pada SM03 dan satu demo user dibuat pada SM01, lalu relasi company user tervalidasi di UI.
+19. Acceptance check Paket 1 terpenuhi: backend build lulus, frontend lint lulus, frontend build lulus, serta smoke test login, profile, company, privilege dasar, dan session berhasil.
+20. Status akhir: implementasi pertama Paket 1 Fase 1 selesai secara teknis dan siap ditutup secara administratif.

@@ -16,7 +16,7 @@ export function proxy(req: NextRequest) {
     if (new Date(session.expires_at).getTime() <= Date.now()) {
       return NextResponse.redirect(new URL("/login", req.url));
     }
-  } catch (e) {
+  } catch {
     return NextResponse.redirect(new URL("/login", req.url));
   }
   return NextResponse.next();

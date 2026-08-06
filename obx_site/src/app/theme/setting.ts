@@ -14,8 +14,7 @@ export type PreferenceValueMap = {
 };
 export type PreferenceKey = keyof PreferenceValueMap;
 
-const LayoutCriticalKeys = ["sidebar_variant", "sidebar_collapsible"] as const;
-export type LayoutCriticalKey = (typeof LayoutCriticalKeys)[number];
+export type LayoutCriticalKey = "sidebar_variant" | "sidebar_collapsible";
 export type NonCriticalKey = Exclude<PreferenceKey, LayoutCriticalKey>;
 
 type LayoutCriticalPersistence = Exclude<PreferencePersistence, "localStorage">;

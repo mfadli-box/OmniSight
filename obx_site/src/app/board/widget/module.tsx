@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/uix/collapsible";
 import {
@@ -238,18 +237,14 @@ function NavCollapsibleItem({
   isSubItemActive
 }: NavCollapsibleItemProps) {
   const Icon = item.icon;
-  const [open, setOpen] = useState(defaultOpen);
-  useEffect(() => {
-    setOpen(defaultOpen);
-  }, [defaultOpen]);
   return (
     <Collapsible
       render={<li
         data-slot="sidebar-menu-item"
         data-sidebar="menu-item"
         className="group/menu-item relative" />}
-      open={open}
-      onOpenChange={setOpen}
+      key={`${item.id}:${defaultOpen ? "open" : "closed"}`}
+      defaultOpen={defaultOpen}
       className="group/collapsible"
     >
       <CollapsibleTrigger

@@ -22,15 +22,29 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader
 } from './alert-dialog';
 
-export interface Column<T> {
+type KeyColumn<T> = {
+  [K in keyof T]: {
+    header: string;
+    accessor: K;
+    selected?: (value: boolean, row: T) => React.ReactNode;
+    sortable?: boolean;
+    hidden?: boolean;
+    align?: 'left' | 'center' | 'right';
+    formatter?: (value: T[K], row: T) => React.ReactNode;
+  }
+}[keyof T];
+
+type ComputedColumn<T> = {
   header: string;
-  accessor: keyof T | ((row: T) => React.ReactNode);
+  accessor: (row: T) => React.ReactNode;
   selected?: (value: boolean, row: T) => React.ReactNode;
   sortable?: boolean;
   hidden?: boolean;
   align?: 'left' | 'center' | 'right';
-  formatter?: (value: any, row: T) => React.ReactNode;
-}
+  formatter?: never;
+};
+
+export type Column<T> = KeyColumn<T> | ComputedColumn<T>;
 export interface ActionConfig<T> {
   onSearch?: () => void;
   onSelect?: (row: T) => void;
@@ -109,12 +123,15 @@ export default function DataTable<T extends { id: string | number }>({
   const [sortBy, setSortBy] = useState('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [loading, setLoading] = useState(false);
-  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({});
   const [selectedIx, setselectedIx] = useState<string[]>([]);
   const isMobile = useIsMobile();
   const showMobileCards = mobileCardView && isMobile;
   const selectableItems = data.filter(
-    (row) => !row.hasOwnProperty('selected') || (row as any).selected !== false
+    (row) => {
+      const maybeSelectable = row as T & { selected?: boolean };
+      return maybeSelectable.selected !== false;
+    }
   );
   const isAllSelected = selectableItems.length > 0 && selectableItems.every(
     (row) => selectedIx.includes(row.id.toString())
@@ -128,26 +145,10 @@ export default function DataTable<T extends { id: string | number }>({
       clearTimeout(handler);
     };
   }, [searchTerm, debounceDelay]);
-  const columnsVersion = useRef(0);
-  useEffect(() => {
-    columnsVersion.current += 1;
-    const version = columnsVersion.current;
-    const initialVisibility: Record<string, boolean> = {};
-    columns.forEach((col) => {
-      initialVisibility[col.header] = !col.hidden;
-    });
-    setVisibleColumns((prev) => {
-      if (Object.keys(prev).length === 0) return initialVisibility;
-      const merged: Record<string, boolean> = {};
-      columns.forEach((col) => {
-        merged[col.header] = col.header in prev ? prev[col.header] : !col.hidden;
-      });
-      return merged;
-    });
-    void version;
-  }, [columns]);
   const fetchDataRef = useRef(fetchData);
-  fetchDataRef.current = fetchData;
+  useEffect(() => {
+    fetchDataRef.current = fetchData;
+  }, [fetchData]);
   useEffect(() => {
     const controller = new AbortController();
     const loadData = async () => {
@@ -207,7 +208,12 @@ export default function DataTable<T extends { id: string | number }>({
     if (align === 'right') return 'text-right justify-end';
     return 'text-left justify-start';
   };
-  const filteredColumns = columns.filter((col) => visibleColumns[col.header] !== false);
+  const filteredColumns = columns.filter((col) => {
+    if (col.header in columnVisibility) {
+      return columnVisibility[col.header] !== false;
+    }
+    return !col.hidden;
+  });
   const hasActions = actions && (!actions.hideDetail || !actions.hideUpdate || !actions.hideDelete);
   const totalTableColumns = filteredColumns.length + (hasActions ? 1 : 0);
   const totalPages = Math.ceil(total / size);
@@ -276,11 +282,21 @@ export default function DataTable<T extends { id: string | number }>({
                     {columns.map((col, idx) => (
                       <Label className="text-sm p-1" key={idx} >
                         <Switch
-                          checked={visibleColumns[col.header] !== false}
-                          onCheckedChange={() => setVisibleColumns({
-                            ...visibleColumns,
-                            [col.header]: !visibleColumns[col.header]
-                          })} 
+                          checked={
+                            col.header in columnVisibility
+                              ? columnVisibility[col.header] !== false
+                              : !col.hidden
+                          }
+                          onCheckedChange={() =>
+                            setColumnVisibility((prev) => {
+                              const current =
+                                col.header in prev ? prev[col.header] !== false : !col.hidden;
+                              return {
+                                ...prev,
+                                [col.header]: !current,
+                              };
+                            })
+                          }
                         />
                         {col.header}
                       </Label>
@@ -349,14 +365,19 @@ export default function DataTable<T extends { id: string | number }>({
                 {filteredColumns.map((col, idx) => (
                   <TableHead
                     key={idx}
-                    onClick={() => col.sortable && handleSort(col.accessor as string)}
+                    onClick={() => {
+                      if (!col.sortable || typeof col.accessor === 'function') {
+                        return;
+                      }
+                      handleSort(String(col.accessor));
+                    }}
                     className={`px-2 py-1 ${getAlignClass(col.align)} ${col.sortable && !hideSort
                       ? 'cursor-pointer select-none hover:bg-gray-200' : ''}`}
                   >
                     <div className="flex items-center gap-1">
                       {col.header}
                       <span className="text-xs text-muted-foreground">
-                        {col.sortable && !hideSort ? (sortBy === col.accessor ? (
+                        {col.sortable && !hideSort && typeof col.accessor !== 'function' ? (sortBy === String(col.accessor) ? (
                           sortOrder === 'asc' ? '▲' : '▼'
                         ) : ' ↕') : ''}
                       </span>
@@ -393,16 +414,15 @@ export default function DataTable<T extends { id: string | number }>({
                       </TableCell>
                     )}
                     {filteredColumns.map((col, idx) => {
-                      const rawValue = typeof col.accessor === 'function' ? undefined : row[col.accessor];
                       return (
                         <TableCell key={idx}
                           className={`px-2 py-1 text-gray-900 sm:whitespace-nowrap ${getAlignClass(col.align)}`}
                         >
-                          {col.formatter 
-                            ? col.formatter(rawValue, row)
-                            : typeof col.accessor === 'function'
-                              ? col.accessor(row)
-                              : (rawValue as unknown as React.ReactNode)
+                          {typeof col.accessor === 'function'
+                            ? col.accessor(row)
+                            : col.formatter
+                              ? col.formatter(row[col.accessor], row)
+                              : (row[col.accessor] as React.ReactNode)
                           }
                         </TableCell>
                       );

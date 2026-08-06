@@ -39,9 +39,6 @@ function JsonNode({
   sortKeys,
   defaultExpanded,
 }: JsonNodeProps) {
-  const indent = " ".repeat(depth * INDENT_SIZE)
-  const childIndent = " ".repeat((depth + 1) * INDENT_SIZE)
-
   const isObject = typeof value === "object" && value !== null
   const isArray = Array.isArray(value)
   const isExpandable = isObject && (isArray ? (value as unknown[]).length > 0 : Object.keys(value as object).length > 0)
@@ -65,18 +62,6 @@ function JsonNode({
     const childIsExpandable = childIsObject && (childIsArray ? (val as unknown[]).length > 0 : Object.keys(val as object).length > 0)
 
     if (!childIsObject) {
-      const displayValue = () => {
-        if (val === null) return <span className="text-muted-foreground">null</span>
-        if (val === undefined) return <span className="text-muted-foreground">undefined</span>
-        if (typeof val === "boolean") return <span className="text-yellow-500">{String(val)}</span>
-        if (typeof val === "number") return <span className="text-sky-500">{String(val)}</span>
-        if (typeof val === "string") {
-          const display = val.length > 100 ? `"${val.substring(0, 100)}..."` : `"${val}"`
-          return <span className="text-emerald-400">{display}</span>
-        }
-        return <span>{String(val)}</span>
-      }
-
       return (
         <JsonNode
           nodeKey={childIsArray ? String(idx) : key}
@@ -130,7 +115,7 @@ function JsonNode({
       <div className={cn("font-mono text-xs")}>
         {nodeKey && (
           <>
-            <span className="text-muted-foreground">"{nodeKey}"</span>
+            <span className="text-muted-foreground">{`"${nodeKey}"`}</span>
             <span className="text-muted-foreground">: </span>
           </>
         )}
@@ -139,7 +124,7 @@ function JsonNode({
         {typeof value === "boolean" && <span className="text-yellow-500">{String(value)}</span>}
         {typeof value === "number" && <span className="text-sky-500">{String(value)}</span>}
         {typeof value === "string" && (
-          <span className="text-emerald-400">"{value}"</span>
+          <span className="text-emerald-400">{`"${value}"`}</span>
         )}
         <span className="text-muted-foreground">{comma}</span>
       </div>
@@ -151,7 +136,7 @@ function JsonNode({
     if (!localExpanded) {
       return (
         <div className={cn("font-mono text-xs")}>
-          <span className="text-muted-foreground">"{nodeKey}"</span>
+          <span className="text-muted-foreground">{`"${nodeKey}"`}</span>
           <span className="text-muted-foreground">: </span>
           <button onClick={handleToggle} className="hover:text-foreground text-muted-foreground">
             <ChevronRightIcon className="inline size-3" />
@@ -166,7 +151,7 @@ function JsonNode({
         <div>
           {nodeKey && (
             <>
-              <span className="text-muted-foreground">"{nodeKey}"</span>
+              <span className="text-muted-foreground">{`"${nodeKey}"`}</span>
               <span className="text-muted-foreground">: </span>
             </>
           )}
@@ -198,7 +183,7 @@ function JsonNode({
   if (!localExpanded) {
     return (
       <div className={cn("font-mono text-xs")}>
-        <span className="text-muted-foreground">"{nodeKey}"</span>
+        <span className="text-muted-foreground">{`"${nodeKey}"`}</span>
         <span className="text-muted-foreground">: </span>
         <button onClick={handleToggle} className="hover:text-foreground text-muted-foreground">
           <ChevronRightIcon className="inline size-3" />
@@ -214,7 +199,7 @@ function JsonNode({
       <div>
         {nodeKey && (
           <>
-            <span className="text-muted-foreground">"{nodeKey}"</span>
+            <span className="text-muted-foreground">{`"${nodeKey}"`}</span>
             <span className="text-muted-foreground">: </span>
           </>
         )}
@@ -264,7 +249,7 @@ function JsonViewer({
   const [expanded, setExpanded] = React.useState(defaultExpanded)
   const [copied, setCopied] = React.useState(false)
 
-  const handleToggle = React.useCallback((_path: string) => {
+  const handleToggle = React.useCallback(() => {
     setExpanded((prev) => !prev)
   }, [])
 

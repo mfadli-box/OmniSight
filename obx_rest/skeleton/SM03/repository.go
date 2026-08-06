@@ -185,14 +185,19 @@ func (r *repository) ListCompanyModule(companyID, search string, page, size int,
 		args = append(args, "%"+search+"%")
 		argIdx++
 	}
-	validSort := map[string]bool{"code": true, "name": true, "created_at": true}
-	if !validSort[sortBy] {
-		sortBy = "code"
+	sortExpr := map[string]string{
+		"code":       "m.code",
+		"name":       "m.name",
+		"created_at": "cm.created_at",
+	}
+	expr, ok := sortExpr[sortBy]
+	if !ok {
+		expr = "m.code"
 	}
 	if sortOrder != "asc" {
 		sortOrder = "desc"
 	}
-	query += fmt.Sprintf(" ORDER BY %s %s", sortBy, sortOrder)
+	query += fmt.Sprintf(" ORDER BY %s %s", expr, sortOrder)
 	offset := (page - 1) * size
 	query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
 	args = append(args, size, offset)

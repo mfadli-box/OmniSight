@@ -18,8 +18,17 @@ interface MainData {
   user_agent: string;
   created_at: string;
 }
+
+type MainModalState = {
+  isOpen: boolean;
+  mode: "detail";
+  title: string;
+  description?: string;
+  onSubmit?: (() => void) | undefined;
+};
+
 export default function Page() {
-  const [mainSelectedRow, setMainSelectedRow] = useState<any>(null);
+  const [mainSelectedRow, setMainSelectedRow] = useState<MainData | null>(null);
   const [refresh, setRefresh] = useState(false);
   const loadData = useCallback(async (params: {
     search: string;
@@ -70,7 +79,7 @@ export default function Page() {
       isOpen: true,
       mode: "detail",
       title: 'Record Details',
-      description: null,
+      description: undefined,
       onSubmit: undefined,
     });
   };
@@ -83,7 +92,13 @@ export default function Page() {
     hideUpdate: true,
     hideDelete: true,
   };
-  const [mainModal, setMainModal] = useState({} as any);
+  const [mainModal, setMainModal] = useState<MainModalState>({
+    isOpen: false,
+    mode: "detail",
+    title: "",
+    description: undefined,
+    onSubmit: undefined,
+  });
   return (
     <Suspense fallback={<p>Loading user profile...</p>}>
       <div className="p-3 max-w-8xl mx-auto">

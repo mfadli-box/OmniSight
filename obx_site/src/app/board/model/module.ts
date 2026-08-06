@@ -153,7 +153,12 @@ function buildNavGroups(nodes: ModuleTreeNode[], isLoggedIn: boolean, isAdmin: b
 export function useModuleItem(): NavGroup[] {
   const companyId = usePreferencesStore((s) => s.companyId);
   const [items, setItems] = useState<NavGroup[]>(moduleItem);
+  const [isHydrated, setIsHydrated] = useState(false);
   useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+  useEffect(() => {
+    if (!isHydrated) return;
     let active = true;
     const load = async () => {
       const session = parseSession(window.localStorage.getItem(storageKey));

@@ -35,7 +35,6 @@ function SlaGauge({
   const arcLength = (totalAngle / 360) * circumference
 
   const strokeDashoffset = arcLength * (1 - progress)
-  const targetOffset = arcLength * (1 - targetProgress)
 
   const center = size / 2
 

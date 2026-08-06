@@ -43,6 +43,8 @@ export function SearchSelect({
     return items.filter((item) => item.name.toLowerCase().includes(lower))
   }, [items, search])
 
+  const isOpen = open && !disabled
+
   const handleSelect = (item: SearchSelectItem) => {
     onValueChange?.(item.id)
     setSearch("")
@@ -58,9 +60,11 @@ export function SearchSelect({
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!open) {
+    if (!isOpen) {
       if (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") {
-        setOpen(true)
+        if (!disabled) {
+          setOpen(true)
+        }
         e.preventDefault()
       }
       return
@@ -100,7 +104,7 @@ export function SearchSelect({
         setHighlightedIndex(-1)
       }
     }
-    if (open) {
+    if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside)
       document.addEventListener("touchstart", handleClickOutside)
     }
@@ -108,27 +112,16 @@ export function SearchSelect({
       document.removeEventListener("mousedown", handleClickOutside)
       document.removeEventListener("touchstart", handleClickOutside)
     }
-  }, [open])
+  }, [isOpen])
 
   React.useEffect(() => {
-    if (open && highlightedIndex >= 0 && listRef.current) {
+    if (isOpen && highlightedIndex >= 0 && listRef.current) {
       const highlightedEl = listRef.current.children[highlightedIndex] as HTMLElement
       if (highlightedEl) {
         highlightedEl.scrollIntoView({ block: "nearest" })
       }
     }
-  }, [highlightedIndex, open])
-
-  React.useEffect(() => {
-    setHighlightedIndex(-1)
-  }, [search, filteredItems.length])
-
-  React.useEffect(() => {
-    if (disabled && open) {
-      setOpen(false)
-      setHighlightedIndex(-1)
-    }
-  }, [disabled, open])
+  }, [highlightedIndex, isOpen])
 
   return (
     <div ref={containerRef} className="relative">
@@ -139,7 +132,10 @@ export function SearchSelect({
           autoComplete="off"
           disabled={disabled}
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value)
+            setHighlightedIndex(-1)
+          }}
           onKeyDown={handleKeyDown}
           placeholder={selectedItem ? selectedItem.name : placeholder}
           className={cn(
@@ -160,18 +156,22 @@ export function SearchSelect({
           )}
           <button
             type="button"
-            onClick={() => !disabled && setOpen(!open)}
+            onClick={() => {
+              if (disabled) return
+              setOpen((prev) => !prev)
+              setHighlightedIndex(-1)
+            }}
             className="flex h-full items-center px-2 py-1 touch-manipulation hover:bg-accent/50 active:bg-accent"
             tabIndex={-1}
           >
             <ChevronDownIcon className={cn(
               "h-4 w-4 text-muted-foreground transition-transform",
-              open && "rotate-180"
+              isOpen && "rotate-180"
             )} />
           </button>
         </div>
       </div>
-      {open && !disabled && (
+      {isOpen && (
         <div
           className="absolute left-0 top-full z-[60] mt-0 w-full min-w-[200px] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-lg max-h-[min(18rem,50dvh)] sm:max-h-[min(15rem,40vh)]"
         >

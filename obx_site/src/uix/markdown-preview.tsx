@@ -75,7 +75,6 @@ function parseMarkdown(content: string): React.ReactNode[] {
   let key = 0
   let inCodeBlock = false
   let codeContent = ""
-  let codeLanguage = ""
 
   let inTable = false
   let tableHeaders: string[] = []
@@ -124,12 +123,10 @@ function parseMarkdown(content: string): React.ReactNode[] {
           </pre>
         )
         codeContent = ""
-        codeLanguage = ""
         inCodeBlock = false
       } else {
         flushTable()
         inCodeBlock = true
-        codeLanguage = line.slice(3).trim()
       }
       continue
     }

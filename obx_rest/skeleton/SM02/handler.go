@@ -15,6 +15,15 @@ func NHand(u UseCase) *Handler {
 	return &Handler{usecase: u}
 }
 
+func requireParam(c *gin.Context, key, label string) (string, bool) {
+	value := c.Param(key)
+	if value == "" {
+		mechanic.Error(c, mechanic.ValidationError(label+" is required"))
+		return "", false
+	}
+	return value, true
+}
+
 func (h *Handler) ListModule(c *gin.Context) {
 	var meta mechanic.ActionMeta
 	if err := c.ShouldBindQuery(&meta); err != nil {
@@ -61,7 +70,10 @@ func (h *Handler) CreateModule(c *gin.Context) {
 }
 
 func (h *Handler) UpdateModule(c *gin.Context) {
-	id := c.Param("id")
+	id, ok := requireParam(c, "id", "Module ID")
+	if !ok {
+		return
+	}
 	var req ModuleUpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		mechanic.Error(c, mechanic.ValidationError("Invalid request body"))

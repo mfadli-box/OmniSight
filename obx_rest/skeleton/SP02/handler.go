@@ -15,10 +15,23 @@ func NHand(u UseCase) *Handler {
 	return &Handler{usecase: u}
 }
 
-func (h *Handler) ChangePassword(c *gin.Context) {
-	userID, exists := c.Get("userId")
+func requireUserID(c *gin.Context) (string, bool) {
+	value, exists := c.Get("userId")
 	if !exists {
 		mechanic.Error(c, mechanic.Unauthorized("Unauthorized"))
+		return "", false
+	}
+	userID, ok := value.(string)
+	if !ok || userID == "" {
+		mechanic.Error(c, mechanic.Unauthorized("Unauthorized"))
+		return "", false
+	}
+	return userID, true
+}
+
+func (h *Handler) ChangePassword(c *gin.Context) {
+	userID, ok := requireUserID(c)
+	if !ok {
 		return
 	}
 	var req struct {
@@ -30,7 +43,7 @@ func (h *Handler) ChangePassword(c *gin.Context) {
 		return
 	}
 	if err := h.usecase.ChangePassword(
-		userID.(string),
+		userID,
 		req.CurrentPassword,
 		req.NewPassword,
 	); err != nil {

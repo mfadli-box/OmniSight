@@ -767,7 +767,6 @@ export default function Page() {
 
   useEffect(() => {
     if (!watchedAreaCompanyId || watchedAreaCompanyId === "") {
-      setAllAreas([]);
       areaCreateForm.setValue("area_id", "");
       return;
     }
@@ -775,7 +774,7 @@ export default function Page() {
       .then((data) => setAllAreas(data?.data ?? []))
       .catch(() => setAllAreas([]));
     areaCreateForm.setValue("area_id", "");
-  }, [watchedAreaCompanyId]);
+  }, [watchedAreaCompanyId, areaCreateForm]);
 
   const availableAreas = useMemo(() => {
     const selectedCompanyId = watchedAreaCompanyId;

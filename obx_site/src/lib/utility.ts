@@ -56,6 +56,12 @@ export const forceLogout = (router?: { replace: (url: string) => void }) => {
   }
 };
 
+export const persistSession = (session: SessionData) => {
+  const sessionStr = JSON.stringify(session);
+  window.localStorage.setItem(storageKey, sessionStr);
+  document.cookie = `${storageKey}=${encodeURIComponent(sessionStr)}; path=/; max-age=${60 * 60 * 24}`;
+};
+
 export const getInitials = (str: string): string => {
   if (typeof str !== "string" || !str.trim()) return "?";
   return (

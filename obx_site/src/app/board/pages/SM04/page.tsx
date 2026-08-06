@@ -1,6 +1,6 @@
 "use client";
 
-import { Controller, useFieldArray, useForm } from "react-hook-form";
+import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -85,7 +85,7 @@ export default function Page() {
       const res = await clientApi<{ data: UserItem[] }>("/SM04/user", {
         params: search ? { search } : {},
       });
-      const list = (res as any)?.data ?? [];
+      const list = res?.data ?? [];
       setUsers(list);
       if (search) setSearchResults(list);
     } catch {
@@ -95,7 +95,10 @@ export default function Page() {
   }, []);
 
   useEffect(() => {
-    fetchUsers("");
+    const timer = setTimeout(() => {
+      void fetchUsers("");
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchUsers]);
 
   const handleSignerSearch = useCallback((value: string) => {
@@ -217,10 +220,13 @@ export default function Page() {
     name: "steps",
   });
 
-  const watchedSteps = createForm.watch("steps");
+  const watchedSteps = useWatch({
+    control: createForm.control,
+    name: "steps",
+  });
   const allSelectedUserIds = useMemo(() => {
     const set = new Set<string>();
-    for (const step of watchedSteps) {
+    for (const step of watchedSteps ?? []) {
       for (const uid of step.user_ids) {
         set.add(uid);
       }

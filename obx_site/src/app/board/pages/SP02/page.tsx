@@ -3,9 +3,9 @@
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { storageKey, parseSession, isSessionExpired, SessionData } from "@/lib/utility";
+import { storageKey, parseSession, isSessionExpired, SessionData, forceLogout } from "@/lib/utility";
 import { clientApi, ClientApiError } from "@/lib/client-api";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/lib/error-message";
@@ -15,30 +15,20 @@ import { Field, FieldError, FieldGroup, FieldLabel, FieldSet } from "@/uix/field
 
 export default function Page() {
   const router = useRouter();
-  const [session, setSession] = useState<SessionData | null>(null);
+  const session = useMemo<SessionData | null>(() => {
+    if (typeof window === "undefined") return null;
+    return parseSession(window.localStorage.getItem(storageKey));
+  }, []);
+
   useEffect(() => {
-    const stored = parseSession(window.localStorage.getItem(storageKey));
-    if (!stored || isSessionExpired(stored)) {
-      window.localStorage.removeItem(storageKey);
-      try {
-        document.cookie = `${storageKey}=; path=/; max-age=0`;
-      } catch { }
-      router.replace("/login");
-      return;
+    if (!session || isSessionExpired(session)) {
+      forceLogout(router);
     }
-    setSession(stored);
-  }, [router]);
-  const [isHRIS, setIsHRIS] = useState(false);
-  useEffect(() => {
-    setIsHRIS(Boolean(session?.user_profile.is_hris));
-  }, [session]);
+  }, [router, session]);
+  const isHRIS = Boolean(session?.user_profile.is_hris);
   const [passwordBusy, setPasswordBusy] = useState(false);
   const forceClientLogout = () => {
-    window.localStorage.removeItem(storageKey);
-    try {
-      document.cookie = storageKey +"=; path=/; max-age=0";
-    } catch (e) {}
-    router.replace("/login");
+    forceLogout(router);
   };
   type passwordInput = z.infer<typeof passwordSchema>;
   const passwordSchema = z

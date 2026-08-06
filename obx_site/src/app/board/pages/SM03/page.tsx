@@ -167,9 +167,9 @@ export default function Page() {
   useEffect(() => {
     const session = parseSession(window.localStorage.getItem(storageKey));
     if (!session) return;
-    clientApi<ModuleOption[]>("/SM03/module")
+    clientApi<{ data: ModuleOption[] }>("/SM03/module")
       .then((res) => {
-        setAllModules((res as any)?.data ?? []);
+        setAllModules(res?.data ?? []);
       })
       .catch(() => {
         setAllModules([]);
@@ -276,8 +276,8 @@ export default function Page() {
     setModal({ isOpen: true, mode: "detail", title: "Company Details" });
     const session = parseSession(window.localStorage.getItem(storageKey));
     if (session) {
-      clientApi("/SM03/" + row.id + "/module/select")
-        .then((res: any) => {
+        clientApi<{ data: CompanyModuleItem[] }>("/SM03/" + row.id + "/module/select")
+          .then((res) => {
           setAssignedModuleIds(new Set((res?.data ?? []).map((m: CompanyModuleItem) => m.module_id)));
         })
         .catch(() => {
@@ -399,11 +399,11 @@ export default function Page() {
           sort_order: params.sort_order,
         },
       });
-      const data = (res as any)?.data ?? [];
+      const data = res?.data ?? [];
       setAssignedModuleIds(new Set(data.map((m: CompanyModuleItem) => m.module_id)));
       return {
         data,
-        meta: (res as any)?.meta ?? { total: 0, page: 1, size: 10 },
+        meta: res?.meta ?? { total: 0, page: 1, size: 10 },
       };
     } catch {
       return { data: [], meta: { total: 0, page: 1, size: 10 } };
@@ -472,7 +472,7 @@ export default function Page() {
         const res = await clientApi<{
           data: CompanyModuleItem[]
         }>("/SM03/" + selectedRow.id + "/module/select");
-        setAssignedModuleIds(new Set((res as any)?.data?.map((m: CompanyModuleItem) => m.module_id) ?? []));
+        setAssignedModuleIds(new Set((res?.data ?? []).map((m: CompanyModuleItem) => m.module_id)));
       } catch {
         setAssignedModuleIds(new Set());
       }
@@ -574,8 +574,8 @@ export default function Page() {
           sort_order: params.sort_order,
         },
       });
-      const data = (res as any)?.data ?? [];
-      const meta = (res as any)?.meta ?? { total: 0, page: 1, size: 10 };
+      const data = res?.data ?? [];
+      const meta = res?.meta ?? { total: 0, page: 1, size: 10 };
       setAreaTotal(meta.total);
       return {
         data,

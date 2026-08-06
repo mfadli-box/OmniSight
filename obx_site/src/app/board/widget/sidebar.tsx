@@ -47,7 +47,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [session, setSession] = useState<SessionData | null>(null);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setSession(parseSession(window.localStorage.getItem(storageKey)));
+  }, []);
   const forceClientLogout = () => forceLogout(router);
+  const sessionName = session?.user_profile.fullname || "---";
+  const sessionEmail = session?.user_profile.email || "---";
   const handleLogout = async () => {
     if (!session) {
       forceClientLogout();
@@ -79,18 +85,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   };
   const { isMobile } = useSidebar();
   useEffect(() => {
-    const stored = parseSession(window.localStorage.getItem(storageKey));
-    if (!stored || isSessionExpired(stored)) {
+    if (!session || isSessionExpired(session)) {
       forceLogout(router);
       return;
     }
     fetch("/proxy/pages/SP01/company", {
-      headers: { Authorization: `Bearer ${stored.token}` },
+      headers: { Authorization: `Bearer ${session.token}` },
     }).then((res) => {
       if (res.status === 401 || res.status === 403) forceLogout(router);
     }).catch(() => forceLogout(router));
-    setSession(stored);
-  }, [router]);
+  }, [router, session]);
   return (
     <Sidebar {...props} variant={variant} collapsible={collapsible}>
       <SidebarHeader>
@@ -134,8 +138,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <AvatarFallback className="rounded-lg">ID</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{session?.user_profile.fullname || "---"}</span>
-                  <span className="truncate text-muted-foreground text-xs">{session?.user_profile.email || "---"}</span>
+                  <span className="truncate font-medium">{sessionName}</span>
+                  <span className="truncate text-muted-foreground text-xs">{sessionEmail}</span>
                 </div>
                 <EllipsisVertical className="ml-auto size-4" />
               </DropdownMenuTrigger>
@@ -147,12 +151,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               >
                 <div className="flex items-center gap-2 px-2 py-1.5 text-left text-sm">
                   <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarImage src={undefined} alt={session?.user_profile.fullname || "---"} />
+                    <AvatarImage src={undefined} alt={sessionName} />
                     <AvatarFallback className="rounded-lg">ID</AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-medium">{session?.user_profile.fullname || "---"}</span>
-                    <span className="truncate text-muted-foreground text-xs">{session?.user_profile.email || "---"}</span>
+                    <span className="truncate font-medium">{sessionName}</span>
+                    <span className="truncate text-muted-foreground text-xs">{sessionEmail}</span>
                   </div>
                 </div>
                 <DropdownMenuSeparator />

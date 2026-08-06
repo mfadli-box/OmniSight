@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { storageKey } from "@/lib/utility";
+import { persistSession } from "@/lib/utility";
 import { Shield, RefreshCw } from "lucide-react";
 import { Button } from "@/uix/button";
 import { Input } from "@/uix/input";
@@ -58,17 +58,32 @@ export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [captcha, setCaptcha] = useState<{ code: string; hint: string } | null>(null);
   const [hrisCompanies, setHrisCompanies] = useState<HrisCompany[]>([]);
   const [loadingHris, setLoadingHris] = useState(true);
-
-  useEffect(() => {
-    setCaptcha(generateCaptcha());
-  }, []);
+  const [captchaVersion, setCaptchaVersion] = useState(0);
+  const isClient = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+  const captcha = useMemo(() => {
+    if (!isClient) {
+      return null;
+    }
+    const currentVersion = captchaVersion;
+    if (currentVersion < 0) {
+      return null;
+    }
+    return generateCaptcha();
+  }, [isClient, captchaVersion]);
 
   const loginForm = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     defaultValues: { username: "", password: "", captcha: "", company_id: "" },
+  });
+  const selectedCompanyId = useWatch({
+    control: loginForm.control,
+    name: "company_id",
   });
 
   useEffect(() => {
@@ -82,7 +97,7 @@ export default function LoginPage() {
   }, [hrisCompanies.length]);
 
   const refreshCaptcha = useCallback(() => {
-    setCaptcha(generateCaptcha());
+    setCaptchaVersion((value) => value + 1);
     loginForm.setValue("captcha", "");
     loginForm.clearErrors("captcha");
   }, [loginForm]);
@@ -119,9 +134,7 @@ export default function LoginPage() {
         expires_at: resData.data.expires_at,
         user_profile: profile,
       };
-      const sessionStr = JSON.stringify(session);
-      window.localStorage.setItem(storageKey, sessionStr);
-      document.cookie = `${storageKey}=${encodeURIComponent(sessionStr)}; path=/; max-age=${60 * 60 * 24}`;
+      persistSession(session);
       router.push("/board");
       router.refresh();
     } catch {
@@ -157,7 +170,7 @@ export default function LoginPage() {
                 <FieldLabel>Company</FieldLabel>
                 <SearchSelect
                   items={hrisCompanies}
-                  value={loginForm.watch("company_id") || null}
+                  value={selectedCompanyId || null}
                   onValueChange={(v) => {
                     loginForm.setValue("company_id", v ?? "", { shouldValidate: true });
                   }}
@@ -208,7 +221,7 @@ export default function LoginPage() {
                 <FieldLabel htmlFor="captcha">Captcha</FieldLabel>
                 <InputGroup aria-invalid={!!loginForm.formState.errors.captcha}>
                   <InputGroupAddon align="inline-start">
-                    <InputGroupText>
+                    <InputGroupText suppressHydrationWarning>
                       {captcha ? captcha.hint : "\u00A0"}
                     </InputGroupText>
                   </InputGroupAddon>

@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Image from "next/image"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utility"
 import { UploadIcon, XIcon, FileIcon, ImageIcon, FileTextIcon } from "lucide-react"
@@ -206,9 +207,11 @@ function FileUpload({
               className="flex items-center gap-3 rounded-md border p-2"
             >
               {showPreviews && file.preview ? (
-                <img
+                <Image
                   src={file.preview}
                   alt={file.name}
+                  width={40}
+                  height={40}
                   className="size-10 rounded object-cover"
                 />
               ) : (

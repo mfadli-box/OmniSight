@@ -40,25 +40,29 @@ export function CompanyCombobox() {
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lockedCompanyId, setLockedCompanyId] = useState("");
+  const [session, setSession] = useState<ReturnType<typeof parseSession>>(null);
   useEffect(() => {
-    let isDisposed = false;
-    setLoading(true);
-    setError(null);
-    const session = parseSession(window.localStorage.getItem(storageKey) || "");
-    if (!session) {
-      setLockedCompanyId("");
-      setCompanyId("");
-      setCompanyList([]);
-      setLoading(false);
+    if (typeof window === "undefined") {
       return;
     }
-    const sessionCompanyId = (session.user_profile.company_id || "").trim();
-    setLockedCompanyId(sessionCompanyId);
-    const initialCompany = (sessionCompanyId || companyId || "").trim();
-    if (initialCompany) {
-      setCompanyId(initialCompany);
+    setSession(parseSession(window.localStorage.getItem(storageKey) || ""));
+  }, []);
+  const lockedCompanyId = (session?.user_profile.company_id || "").trim();
+
+  useEffect(() => {
+    let isDisposed = false;
+    if (!session) {
+      queueMicrotask(() => {
+        if (isDisposed) {
+          return;
+        }
+        setCompanyId("");
+        setCompanyList([]);
+        setLoading(false);
+      });
+      return;
     }
+    const initialCompany = (lockedCompanyId || companyId || "").trim();
       fetch(`/proxy/pages/SP01/company`, {
         headers: {
           Authorization: `Bearer ${session.token}`,
@@ -79,9 +83,9 @@ export function CompanyCombobox() {
         if (!nextCompanies.length) {
           return;
         }
-        if (sessionCompanyId) {
+        if (lockedCompanyId) {
           const matchedLockedCompany = nextCompanies.find(
-            (company) => String(company.id).trim() === sessionCompanyId,
+            (company) => String(company.id).trim() === lockedCompanyId,
           );
           setCompanyId(matchedLockedCompany?.id ?? "");
           upsertSessionCompanyName(matchedLockedCompany?.name ?? "");
@@ -95,7 +99,7 @@ export function CompanyCombobox() {
           setCompanyId("");
           upsertSessionCompanyName("");
         }
-        if (matchedInitialCompany && companyId !== matchedInitialCompany.id) {
+        if (matchedInitialCompany) {
           setCompanyId(matchedInitialCompany.id);
         }
         if (matchedInitialCompany) {
@@ -112,12 +116,13 @@ export function CompanyCombobox() {
         if (isDisposed) {
           return;
         }
+        setError(null);
         setLoading(false);
       });
     return () => {
       isDisposed = true;
     };
-  }, [setCompanyId, setCompanyList]);
+  }, [companyId, lockedCompanyId, session, setCompanyId, setCompanyList]);
   const placeholder = loading ? "Loading company..." : "Select company";
   const selectedCompanyId = lockedCompanyId || companyId;
   return (

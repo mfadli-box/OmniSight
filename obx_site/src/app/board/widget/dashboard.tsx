@@ -39,18 +39,21 @@ export function Board() {
   const router = useRouter();
   const [session, setSession] = useState<SessionData | null>(null);
   useEffect(() => {
-    const stored = parseSession(window.localStorage.getItem(storageKey));
-    if (!stored || isSessionExpired(stored)) {
+    if (typeof window === "undefined") return;
+    setSession(parseSession(window.localStorage.getItem(storageKey)));
+  }, []);
+
+  useEffect(() => {
+    if (!session || isSessionExpired(session)) {
       forceLogout(router);
       return;
     }
     fetch("/proxy/pages/SP01/company", {
-      headers: { Authorization: `Bearer ${stored.token}` },
+      headers: { Authorization: `Bearer ${session.token}` },
     }).then((res) => {
       if (res.status === 401 || res.status === 403) forceLogout(router);
     }).catch(() => forceLogout(router));
-    setSession(stored);
-  }, [router]);
+  }, [router, session]);
   const profileEntries = useMemo<ProfileEntry[]>(() => {
     if (!session?.user_profile) return [];
     return Object.entries(session.user_profile).filter(([key]) => {

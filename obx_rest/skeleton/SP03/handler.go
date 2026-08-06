@@ -15,10 +15,23 @@ func NHand(u UseCase) *Handler {
 	return &Handler{usecase: u}
 }
 
-func (h *Handler) ListActions(c *gin.Context) {
-	userID, exists := c.Get("userId")
+func requireUserID(c *gin.Context) (string, bool) {
+	value, exists := c.Get("userId")
 	if !exists {
 		mechanic.Error(c, mechanic.Unauthorized("User not found in session"))
+		return "", false
+	}
+	userID, ok := value.(string)
+	if !ok || userID == "" {
+		mechanic.Error(c, mechanic.Unauthorized("User not found in session"))
+		return "", false
+	}
+	return userID, true
+}
+
+func (h *Handler) ListActions(c *gin.Context) {
+	userID, ok := requireUserID(c)
+	if !ok {
 		return
 	}
 	var meta mechanic.ActionMeta
@@ -27,7 +40,7 @@ func (h *Handler) ListActions(c *gin.Context) {
 		return
 	}
 	list, gridMeta, err := h.usecase.ListActions(
-		userID.(string),
+		userID,
 		meta.Search,
 		meta.Page,
 		meta.Size,

@@ -5,7 +5,7 @@ import { cn } from "@/lib/utility"
 import { ScrollArea } from "./scroll-area"
 import { Badge } from "./badge"
 import { Button } from "./button"
-import { ChevronDownIcon, ChevronRightIcon, DownloadIcon } from "lucide-react"
+import { DownloadIcon } from "lucide-react"
 
 export interface DiffLine {
   type: "added" | "removed" | "unchanged" | "changed"
@@ -115,11 +115,9 @@ export interface DiffViewerProps extends React.ComponentProps<"div"> {
   newContent?: string
   oldLabel?: string
   newLabel?: string
-  language?: string
   showLineNumbers?: boolean
   showDiffSummary?: boolean
   onDownload?: () => void
-  unified?: boolean
 }
 
 function DiffViewer({
@@ -127,11 +125,9 @@ function DiffViewer({
   newContent = "",
   oldLabel = "Previous",
   newLabel = "Current",
-  language,
   showLineNumbers = true,
   showDiffSummary = true,
   onDownload,
-  unified = true,
   className,
   ...props
 }: DiffViewerProps) {

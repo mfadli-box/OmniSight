@@ -15,6 +15,15 @@ func NHand(u UseCase) *Handler {
 	return &Handler{usecase: u}
 }
 
+func requireParam(c *gin.Context, key, label string) (string, bool) {
+	value := c.Param(key)
+	if value == "" {
+		mechanic.Error(c, mechanic.ValidationError(label+" is required"))
+		return "", false
+	}
+	return value, true
+}
+
 func (h *Handler) ListCompany(c *gin.Context) {
 	var meta mechanic.ActionMeta
 	if err := c.ShouldBindQuery(&meta); err != nil {
@@ -27,7 +36,7 @@ func (h *Handler) ListCompany(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Company retrieved",
+		"message": "Companies retrieved",
 		"data":    list,
 		"meta":    gridMeta,
 	})
@@ -61,7 +70,10 @@ func (h *Handler) CreateCompany(c *gin.Context) {
 }
 
 func (h *Handler) UpdateCompany(c *gin.Context) {
-	id := c.Param("id")
+	id, ok := requireParam(c, "id", "Company ID")
+	if !ok {
+		return
+	}
 	var req CompanyUpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		mechanic.Error(c, mechanic.ValidationError("Invalid request body"))
@@ -77,7 +89,10 @@ func (h *Handler) UpdateCompany(c *gin.Context) {
 }
 
 func (h *Handler) ListCompanyModule(c *gin.Context) {
-	id := c.Param("id")
+	id, ok := requireParam(c, "id", "Company ID")
+	if !ok {
+		return
+	}
 	var meta mechanic.ActionMeta
 	if err := c.ShouldBindQuery(&meta); err != nil {
 		mechanic.Error(c, mechanic.ValidationError("Invalid query parameters"))
@@ -96,7 +111,10 @@ func (h *Handler) ListCompanyModule(c *gin.Context) {
 }
 
 func (h *Handler) ListCompanyModuleSelect(c *gin.Context) {
-	id := c.Param("id")
+	id, ok := requireParam(c, "id", "Company ID")
+	if !ok {
+		return
+	}
 	list, err := h.usecase.ListCompanyModuleSelect(id)
 	if err != nil {
 		mechanic.Error(c, err)
@@ -109,7 +127,10 @@ func (h *Handler) ListCompanyModuleSelect(c *gin.Context) {
 }
 
 func (h *Handler) AssignCompanyModule(c *gin.Context) {
-	id := c.Param("id")
+	id, ok := requireParam(c, "id", "Company ID")
+	if !ok {
+		return
+	}
 	var body CompanyModuleAssignRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
 		mechanic.Error(c, mechanic.ValidationError("module_id is required"))
@@ -125,8 +146,14 @@ func (h *Handler) AssignCompanyModule(c *gin.Context) {
 }
 
 func (h *Handler) UpdateCompanyModule(c *gin.Context) {
-	id := c.Param("id")
-	moduleID := c.Param("moduleId")
+	id, ok := requireParam(c, "id", "Company ID")
+	if !ok {
+		return
+	}
+	moduleID, ok := requireParam(c, "moduleId", "Module ID")
+	if !ok {
+		return
+	}
 	var body CompanyModuleUpdateRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
 		mechanic.Error(c, mechanic.ValidationError("Invalid request body"))
@@ -142,7 +169,10 @@ func (h *Handler) UpdateCompanyModule(c *gin.Context) {
 }
 
 func (h *Handler) ListArea(c *gin.Context) {
-	id := c.Param("id")
+	id, ok := requireParam(c, "id", "Company ID")
+	if !ok {
+		return
+	}
 	var meta mechanic.ActionMeta
 	if err := c.ShouldBindQuery(&meta); err != nil {
 		mechanic.Error(c, mechanic.ValidationError("Invalid query parameters"))
@@ -161,7 +191,10 @@ func (h *Handler) ListArea(c *gin.Context) {
 }
 
 func (h *Handler) CreateArea(c *gin.Context) {
-	id := c.Param("id")
+	id, ok := requireParam(c, "id", "Company ID")
+	if !ok {
+		return
+	}
 	var req AreaCreateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		mechanic.Error(c, mechanic.ValidationError("Invalid request body"))
@@ -177,7 +210,10 @@ func (h *Handler) CreateArea(c *gin.Context) {
 }
 
 func (h *Handler) UpdateArea(c *gin.Context) {
-	areaId := c.Param("areaId")
+	areaId, ok := requireParam(c, "areaId", "Area ID")
+	if !ok {
+		return
+	}
 	var req AreaUpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		mechanic.Error(c, mechanic.ValidationError("Invalid request body"))
@@ -193,7 +229,10 @@ func (h *Handler) UpdateArea(c *gin.Context) {
 }
 
 func (h *Handler) DeleteArea(c *gin.Context) {
-	areaId := c.Param("areaId")
+	areaId, ok := requireParam(c, "areaId", "Area ID")
+	if !ok {
+		return
+	}
 	if err := h.usecase.DeleteArea(areaId); err != nil {
 		mechanic.Error(c, err)
 		return

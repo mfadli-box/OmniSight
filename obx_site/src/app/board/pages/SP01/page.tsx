@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { isSessionExpired, parseSession, storageKey, type SessionData } from "@/lib/utility";
+import { forceLogout, isSessionExpired, parseSession, storageKey, type SessionData } from "@/lib/utility";
 import { Badge } from "@/uix/badge";
 import { Field, FieldContent, FieldGroup, FieldLabel, FieldSet } from "@/uix/field";
 import { Input } from "@/uix/input";
@@ -38,20 +38,16 @@ const toBoolean = (value: string | number | boolean | null | undefined) => {
 
 export default function Page() {
   const router = useRouter();
-  const [session, setSession] = useState<SessionData | null>(null);
+  const session = useMemo<SessionData | null>(() => {
+    if (typeof window === "undefined") return null;
+    return parseSession(window.localStorage.getItem(storageKey));
+  }, []);
+
   useEffect(() => {
-    const stored = parseSession(window.localStorage.getItem(storageKey));
-    if (!stored || isSessionExpired(stored)) {
-      window.localStorage.removeItem(storageKey);
-      try {
-        document.cookie = `${storageKey}=; path=/; max-age=0`;
-      } catch {
-      }
-      router.replace("/login");
-      return;
+    if (!session || isSessionExpired(session)) {
+      forceLogout(router);
     }
-    setSession(stored);
-  }, [router]);
+  }, [router, session]);
   const profileEntries = useMemo<ProfileEntry[]>(() => {
     if (!session?.user_profile) return [];
     return Object.entries(session.user_profile).filter(([key]) => {

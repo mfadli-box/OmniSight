@@ -97,13 +97,12 @@ function CronInput({
     try {
       const parts = cron.trim().split(/\s+/)
       if (parts.length < 5) return ""
-      const [min, hour, dom, mon, dow] = parts
+      const [min, hour] = parts
       const now = new Date()
       const next = new Date(now)
       next.setSeconds(0, 0)
 
       if (min !== "*") {
-        const m = parseInt(min)
         if (min.includes("/")) {
           const step = parseInt(min.split("/")[1])
           next.setMinutes(Math.ceil(next.getMinutes() / step) * step)

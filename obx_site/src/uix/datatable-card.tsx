@@ -36,12 +36,11 @@ export default function DataTableCard<T extends { id: string | number }>({
   const bodyColumns = visibleColumns.slice(1);
 
   const getCellValue = (col: Column<T>, row: T) => {
-    if (col.formatter) {
-      const rawValue = typeof col.accessor === "function" ? undefined : row[col.accessor as keyof T];
-      return col.formatter(rawValue, row);
-    }
     if (typeof col.accessor === "function") {
       return col.accessor(row);
+    }
+    if (col.formatter) {
+      return col.formatter(row[col.accessor], row);
     }
     return row[col.accessor] as React.ReactNode;
   };

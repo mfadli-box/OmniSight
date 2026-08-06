@@ -18,6 +18,11 @@ Folder ini berisi helper konfigurasi untuk Copilot CLI agar workflow konsisten d
 - prompts/quick/debug-fast.md
 - prompts/quick/daily-use.md
 - prompts/quick/copilot-cheatsheet.md
+- prompts/quick/autopilot-big-pickle.md
+- prompts/quick/autopilot-big-pickle-progress.md
+- prompts/quick/autopilot-big-pickle-no-smoke.md
+- prompts/quick/opencode-cli-big-pickle-commands.md
+- prompts/quick/run-opencode-autopilot.ps1
 - prompts/master-template.md
 - prompts/opencode-copilot-parity.md
 - prompts/modes/backend.md

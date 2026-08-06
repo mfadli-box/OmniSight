@@ -90,7 +90,7 @@ export default function Page() {
     if (!session) return;
     try {
       const res = await clientApi<{ data: SessionDetailItem }>("/SM05/" + row.id);
-      setDetailModal({ isOpen: true, data: (res as any)?.data ?? null });
+      setDetailModal({ isOpen: true, data: res?.data ?? null });
     } catch (err) {
       if (err instanceof ClientApiError && err.status === 401) return;
       toast.error(
