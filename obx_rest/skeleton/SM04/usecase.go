@@ -14,7 +14,11 @@ func NCase(r Repository) UseCase {
 }
 
 func (u *useCase) ListSignatureType() ([]SignatureTypeItem, error) {
-	return u.repo.ListSignatureType()
+	list, err := u.repo.ListSignatureType()
+	if err != nil {
+		return nil, mechanic.InternalError("Failed to list signature types", err)
+	}
+	return list, nil
 }
 
 func (u *useCase) CreateSignatureType(req TypeCreateRequest) error {
@@ -86,7 +90,11 @@ func (u *useCase) UpdateSignatureType(id string, req TypeCreateRequest) error {
 }
 
 func (u *useCase) ListUser(companyID, search string) ([]UserListItem, error) {
-	return u.repo.ListUser(companyID, search)
+	list, err := u.repo.ListUser(companyID, search)
+	if err != nil {
+		return nil, mechanic.InternalError("Failed to list signer users", err)
+	}
+	return list, nil
 }
 
 func (u *useCase) ListRequest(companyID string, meta mechanic.ActionMeta) (

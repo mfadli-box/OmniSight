@@ -17,6 +17,8 @@ Model: opencode/big-pickle
 Executor: {nama}
 
 Batch dikerjakan:
+- F1-P2 dat_signature: done (2026-08-06 13:37:30)
+- F1-P2 dat_request: done (2026-08-06 13:34:27)
 - F1-P2 dat_request: done (2026-08-06 13:33:30)
 - F1-P2 dat_document_evidence: done (2026-08-06 13:33:06)
 - F1-P2 dat_document_revision: done (2026-08-06 13:27:48)
@@ -293,3 +295,27 @@ Blocker:
 
 Next Action:
 - Batch F1-P2 selesai; lanjut ke Fase 2 (modul jms_asset_group, jms_asset, dst) sesuai tracking board.
+
+### 2026-08-06 (F1-P2 dat_signature - re-run)
+
+Model: opencode/big-pickle  
+Executor: opencode/big-pickle
+
+Batch dikerjakan:
+- F1-P2 dat_signature: done
+
+Validation:
+- cd obx_rest && go build ./... -> pass
+- cd obx_rest && go vet ./skeleton/SM04/... -> pass
+- cd obx_base && npx prisma validate -> pass
+
+Ringkasan:
+- Scope: Verifikasi batch backend dat_signature (SM04): signature type + approval step/signer, request, signature form & flag flow. Mode backend, single-module small-batch.
+- Changes: `skeleton/SM04/usecase.go` — wrap raw error di `ListSignatureType` dan `ListUser` dengan `mechanic.InternalError` agar konsisten pattern repo. Tidak ada perubahan schema Prisma atau route.
+- Notes: Batch dat_signature sebelumnya sudah done (create/update signature type + generate form + flag action + advance step + finalisasi request). Risiko sisa: `FlagAction` belum mengecek step form == `current_step` (approval bisa tidak berurutan) dan belum mengotorisasi actor sebagai signer flag.
+
+Blocker:
+- Tidak ada blocker aktif.
+
+Next Action:
+- Batch F1-P2 selesai; lanjut Fase 2 (modul jms_asset_group, jms_asset, dst) sesuai tracking board.
