@@ -21,3 +21,9 @@ Pusat dokumentasi proyek yang dibagi menjadi dua jalur utama:
 
 - Template blueprint: `obx_docs/blueprint/_template/README.md`
 - Template guide: `obx_docs/guide/_template.md`
+
+## Update Terakhir
+
+- Tanggal: 6 Agustus 2026
+- Oleh: opencode/big-pickle
+- Keterangan: Sinkronisasi indeks dokumentasi obx_docs dengan penambahan paket prompt autopilot, varian no-smoke, tracker progres, dan runner Opencode CLI.

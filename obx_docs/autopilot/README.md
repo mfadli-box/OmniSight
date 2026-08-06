@@ -98,3 +98,9 @@ Folder ini berisi dokumen operasional agar pembuatan modul dapat dijalankan kons
 - Satu sumber kebenaran spesifikasi per modul.
 - Perubahan kecil dan terukur.
 - Verifikasi wajib sebelum status selesai.
+
+## Update Terakhir
+
+- Tanggal: 6 Agustus 2026
+- Oleh: opencode/big-pickle
+- Keterangan: Penambahan dan sinkronisasi paket prompt autopilot big-pickle, varian no-smoke test, tracker progres harian, command cookbook Opencode CLI, dan runner PowerShell batch.

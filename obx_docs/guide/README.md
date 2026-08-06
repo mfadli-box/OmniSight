@@ -33,3 +33,10 @@ Setiap user guide minimal memiliki bagian berikut:
 
 - Gunakan template pada obx_docs/guide/_template.md saat menambah submodul baru.
 - Gunakan bahasa yang sederhana, langsung ke langkah, dan minim ambiguitas.
+
+## Update Terakhir
+
+- Tanggal: 6 Agustus 2026
+- Oleh: opencode/big-pickle
+- Keterangan: Sinkronisasi metadata indeks user guide dengan pembaruan workflow autopilot dan utilitas runner Opencode CLI.
+

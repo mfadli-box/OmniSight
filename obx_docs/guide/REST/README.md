@@ -13,3 +13,9 @@ Panduan per page backend obx_rest.
 | SM03 | SM03.md | active |
 | SM04 | SM04.md | active |
 | SM05 | SM05.md | active |
+
+## Update Terakhir
+
+- Tanggal: 6 Agustus 2026
+- Oleh: opencode/big-pickle
+- Keterangan: Sinkronisasi metadata indeks REST guide sesuai pembaruan workflow autopilot dan tracker eksekusi.

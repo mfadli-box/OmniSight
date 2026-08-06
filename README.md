@@ -86,6 +86,6 @@ Untuk detail arsitektur dan pola implementasi per submodul, selalu rujuk dokumen
 
 ## Update Terakhir
 
-- Tanggal: 5 Agustus 2026
-- Oleh: Owner
-- Keterangan: Sinkronisasi README root dengan dokumentasi aktif saat ini (PLAN/JMS dan autopilot).
+- Tanggal: 6 Agustus 2026
+- Oleh: opencode/big-pickle
+- Keterangan: Penambahan paket prompt cepat autopilot, varian no-smoke, tracker progres harian, dan runner PowerShell untuk eksekusi batch Opencode CLI.

@@ -38,3 +38,10 @@ Setiap submodul minimal memiliki bagian berikut:
 - Gunakan template pada obx_docs/blueprint/_template/README.md saat menambah submodul baru.
 - Dokumen harus ringkas, operasional, dan konsisten dengan pola repository.
 - Untuk perubahan schema Prisma, perbarui blueprint BASE terlebih dahulu sebelum blueprint submodul lain.
+
+## Update Terakhir
+
+- Tanggal: 6 Agustus 2026
+- Oleh: opencode/big-pickle
+- Keterangan: Sinkronisasi metadata indeks blueprint dengan pembaruan paket prompt autopilot dan runner eksekusi Opencode CLI.
+
