@@ -8,7 +8,7 @@ param(
   [switch]$DryRun,
   [switch]$ContinueOnError,
   [switch]$UpdateTracker,
-  [string]$TrackerPath = ".github/prompts/quick/autopilot-big-pickle-progress.md",
+  [string]$TrackerPath = "autopilot-big-pickle-progress.md",
   [string]$Executor = "Owner"
 )
 
@@ -67,12 +67,29 @@ function Update-ProgressTracker {
     [string]$ExecutorValue
   )
 
-  if (-not (Test-Path $FilePath)) {
+  $resolvedPath = $FilePath
+
+  if (-not [System.IO.Path]::IsPathRooted($resolvedPath)) {
+    $candidateFromCwd = Join-Path (Get-Location) $resolvedPath
+    $candidateFromScript = Join-Path $PSScriptRoot $resolvedPath
+    $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\.." )).Path
+    $candidateFromRepo = Join-Path $repoRoot $resolvedPath
+
+    if (Test-Path $candidateFromCwd) {
+      $resolvedPath = $candidateFromCwd
+    } elseif (Test-Path $candidateFromScript) {
+      $resolvedPath = $candidateFromScript
+    } elseif (Test-Path $candidateFromRepo) {
+      $resolvedPath = $candidateFromRepo
+    }
+  }
+
+  if (-not (Test-Path $resolvedPath)) {
     throw "Tracker file not found: $FilePath"
   }
 
   $key = "F$PhaseValue-P$PackageValue $ModuleValue"
-  $content = Get-Content -Raw $FilePath
+  $content = Get-Content -Raw $resolvedPath
 
   $unchecked = "- [ ] $key"
   $checked = "- [x] $key"
@@ -120,7 +137,7 @@ Next Action:
     $content += $entry
   }
 
-  Set-Content -Path $FilePath -Value $content -NoNewline
+  Set-Content -Path $resolvedPath -Value $content -NoNewline
 }
 
 if (-not (Get-Command opencode -ErrorAction SilentlyContinue)) {

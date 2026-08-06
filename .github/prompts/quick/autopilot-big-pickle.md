@@ -868,10 +868,10 @@ Gunakan checklist ini untuk tracking cepat. Ubah [ ] menjadi [x] saat modul sele
 
 ### Fase 1
 
-- [ ] F1-P2 dat_request
-- [ ] F1-P2 dat_signature
-- [ ] F1-P2 dat_document
-- [ ] F1-P2 dat_document_revision
+- [x] F1-P2 dat_request
+- [x] F1-P2 dat_signature
+- [x] F1-P2 dat_document
+- [x] F1-P2 dat_document_revision
 - [ ] F1-P2 dat_document_evidence
 
 ### Fase 2
