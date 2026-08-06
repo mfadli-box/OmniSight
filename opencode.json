@@ -1,0 +1,27 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "lsp": true,
+  "permission": {
+    "read": {
+      "*": "allow",
+      "obx_docs/config/**": "deny"
+    },
+    "edit": {
+      "obx_docs/config/**": "deny"
+    },
+    "glob": {
+      "obx_docs/config/**": "deny"
+    },
+    "grep": {
+      "obx_docs/config/**": "deny"
+    },
+    "bash": {
+      "cat *obx_docs/config*": "deny",
+      "ls *obx_docs/config/*": "deny",
+      "dir *obx_docs/config/*": "deny",
+      "Get-ChildItem *obx_docs/config/*": "deny",
+      "type *obx_docs/config/*": "deny"
+    }
+  },
+  "snapshot": false
+}

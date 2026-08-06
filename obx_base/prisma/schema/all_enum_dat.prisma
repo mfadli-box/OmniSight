@@ -1,0 +1,19 @@
+enum action_type {
+  HIDE
+  VIEW
+  BOOK
+  POST
+}
+
+enum approval_flag {
+  ALL_APPROVED
+  ANY_APPROVED
+}
+
+enum approval_info {
+  PENDING
+  IN_PROGRESS
+  APPROVED
+  REJECTED
+  COMPLETED
+}

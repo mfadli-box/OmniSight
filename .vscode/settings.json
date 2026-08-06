@@ -1,0 +1,14 @@
+{
+  "files.exclude": {
+    "obx_docs/config/": true
+  },
+  "search.exclude": {
+    "obx_docs/config/": true
+  },
+  "files.watcherExclude": {
+    "obx_docs/config/": true
+  },
+  "github.copilot.enable": {
+    "obx_docs/config/**": false
+  }
+}

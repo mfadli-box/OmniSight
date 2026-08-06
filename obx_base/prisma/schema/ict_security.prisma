@@ -1,0 +1,245 @@
+model ict_firewall_rule {
+  id             String   @id @default(uuid())
+  company_id     String
+  host_id        String
+  family         String   @default("inet") @db.VarChar(10)
+  table_name     String   @default("filter") @db.VarChar(50)
+  chain          String   @db.VarChar(30)
+  rule_type      String   @default("nftables") @db.VarChar(10)
+  protocol       String?  @db.VarChar(10)
+  source_ip      String?  @db.VarChar(45)
+  source_port    Int?
+  dest_ip        String?  @db.VarChar(45)
+  dest_port      Int?
+  in_interface   String?  @db.VarChar(50)
+  out_interface  String?  @db.VarChar(50)
+  action         String   @db.VarChar(10)
+  priority       Int      @default(0)
+  comment        String?  @db.VarChar(255)
+  auto_generated Boolean  @default(false)
+  source_rule_id String?
+  is_active      Boolean  @default(true)
+  created_at     DateTime @default(now())
+  updated_at     DateTime @default(now())
+
+  @@index([company_id, host_id])
+  @@index([host_id, chain])
+  @@index([dest_port])
+}
+
+model ict_firewall_zone {
+  id             String   @id @default(uuid())
+  company_id     String
+  host_id        String
+  name           String   @db.VarChar(50)
+  description    String?  @db.Text
+  interfaces     Json?    @default("[]")
+  default_action String   @default("drop") @db.VarChar(10)
+  is_active      Boolean  @default(true)
+  created_at     DateTime @default(now())
+  updated_at     DateTime @default(now())
+
+  @@unique([company_id, host_id, name])
+  @@index([host_id])
+}
+
+model ict_firewall_zone_rule {
+  id         String   @id @default(uuid())
+  zone_id    String
+  rule_id    String
+  direction  String   @db.VarChar(10)
+  created_at DateTime @default(now())
+
+  @@unique([zone_id, rule_id, direction])
+}
+
+model ict_incident {
+  id               String    @id @default(uuid())
+  company_id       String
+  title            String    @db.VarChar(255)
+  description      String?   @db.Text
+  severity         String    @default("medium") @db.VarChar(20)
+  status           String    @default("new") @db.VarChar(20)
+  source           String    @default("manual") @db.VarChar(30)
+  source_ref_type  String?   @db.VarChar(30)
+  source_ref_id    String?
+  detected_at      DateTime  @default(now())
+  triage_at        DateTime?
+  investigation_at DateTime?
+  resolved_at      DateTime?
+  closed_at        DateTime?
+  assignee_id      String?
+  resolution_notes String?   @db.Text
+  root_cause       String?   @db.Text
+  lessons_learned  String?   @db.Text
+  is_active        Boolean   @default(true)
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @default(now())
+
+  @@index([company_id, status])
+  @@index([company_id, severity])
+  @@index([company_id, detected_at])
+}
+
+model ict_incident_evidence {
+  id            String   @id @default(uuid())
+  company_id    String
+  incident_id   String
+  name          String   @db.VarChar(255)
+  evidence_type String   @db.VarChar(30)
+  file_path     String?  @db.Text
+  file_size     BigInt?  @default(0)
+  content_type  String?  @db.VarChar(100)
+  description   String?  @db.Text
+  uploaded_by   String
+  created_at    DateTime @default(now())
+
+  @@index([incident_id])
+  @@index([company_id])
+}
+
+model ict_incident_timeline {
+  id           String   @id @default(uuid())
+  company_id   String
+  incident_id  String
+  action       String   @db.VarChar(50)
+  description  String?  @db.Text
+  old_value    String?  @db.VarChar(50)
+  new_value    String?  @db.VarChar(50)
+  performed_by String
+  created_at   DateTime @default(now())
+
+  @@index([incident_id, created_at])
+}
+
+model ict_incident_ioc {
+  id           String   @id @default(uuid())
+  company_id   String
+  incident_id  String
+  ioc_type     String   @db.VarChar(30)
+  ioc_value    String   @db.VarChar(500)
+  description  String?  @db.Text
+  threat_level String   @default("medium") @db.VarChar(20)
+  is_active    Boolean  @default(true)
+  created_by   String
+  created_at   DateTime @default(now())
+
+  @@index([incident_id])
+  @@index([ioc_type, ioc_value])
+}
+
+model ict_vuln_scan_schedule {
+  id            String    @id @default(uuid())
+  company_id    String
+  host_id       String
+  name          String    @db.VarChar(100)
+  scan_type     String    @db.VarChar(30)
+  target        String    @db.VarChar(500)
+  schedule_cron String?   @db.VarChar(100)
+  enabled       Boolean   @default(true)
+  last_run_at   DateTime?
+  last_status   String?   @db.VarChar(20)
+  is_active     Boolean   @default(true)
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @default(now())
+
+  @@index([company_id])
+  @@index([host_id])
+}
+
+model ict_vuln_scan {
+  id             String    @id @default(uuid())
+  company_id     String
+  host_id        String
+  schedule_id    String?
+  scan_type      String    @db.VarChar(30)
+  target         String    @db.VarChar(500)
+  status         String    @default("pending") @db.VarChar(20)
+  total_findings Int       @default(0)
+  critical_count Int       @default(0)
+  high_count     Int       @default(0)
+  medium_count   Int       @default(0)
+  low_count      Int       @default(0)
+  log            String?   @db.Text
+  started_at     DateTime?
+  completed_at   DateTime?
+  created_by     String
+  created_at     DateTime  @default(now())
+
+  @@index([host_id, status])
+  @@index([company_id])
+}
+
+model ict_vuln_finding {
+  id                String   @id @default(uuid())
+  company_id        String
+  scan_id           String
+  vulnerability_id  String?  @db.VarChar(100)
+  pkg_name          String?  @db.VarChar(255)
+  installed_version String?  @db.VarChar(50)
+  fixed_version     String?  @db.VarChar(50)
+  severity          String   @db.VarChar(20)
+  title             String?  @db.Text
+  description       String?  @db.Text
+  cvss_score        Decimal? @db.Decimal(3, 1)
+  cve_id            String?  @db.VarChar(50)
+  status            String   @default("open") @db.VarChar(20)
+  created_at        DateTime @default(now())
+
+  @@index([scan_id])
+  @@index([severity])
+  @@index([cve_id])
+}
+
+model ict_fim_path {
+  id           String    @id @default(uuid())
+  company_id   String
+  host_id      String
+  file_path    String    @db.Text
+  description  String?   @db.Text
+  check_sha256 Boolean   @default(true)
+  check_owner  Boolean   @default(true)
+  check_perms  Boolean   @default(true)
+  check_size   Boolean   @default(true)
+  enabled      Boolean   @default(true)
+  last_checked DateTime?
+  last_hash    String?   @db.VarChar(128)
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @default(now())
+
+  @@unique([company_id, host_id, file_path])
+  @@index([host_id])
+}
+
+model ict_fim_snapshot {
+  id          String   @id @default(uuid())
+  company_id  String
+  host_id     String
+  path_id     String
+  file_path   String   @db.Text
+  sha256_hash String?  @db.VarChar(128)
+  file_size   BigInt?  @default(0)
+  owner       String?  @db.VarChar(100)
+  permissions String?  @db.VarChar(20)
+  is_baseline Boolean  @default(false)
+  captured_at DateTime @default(now())
+
+  @@index([path_id, captured_at])
+  @@index([host_id])
+}
+
+model ict_fim_alert {
+  id           String   @id @default(uuid())
+  company_id   String
+  host_id      String
+  path_id      String
+  change_type  String   @db.VarChar(20)
+  old_value    String?  @db.Text
+  new_value    String?  @db.Text
+  severity     String   @default("medium") @db.VarChar(20)
+  acknowledged Boolean  @default(false)
+  created_at   DateTime @default(now())
+
+  @@index([path_id, created_at])
+  @@index([host_id, created_at])
+}

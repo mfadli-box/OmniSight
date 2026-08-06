@@ -1,0 +1,125 @@
+# Development/Local docker-compose — Optional Services
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+# This file adds: PgBouncer (pool), PgAdmin (tool), Elasticsearch (elas)
+
+networks:
+  blackbox:
+    external:
+      name: blackbox
+
+# Shared volume for agent logs (syslog buffer, etc.)
+volumes:
+  pgadmin:
+    driver: local
+  elastics:
+    driver: local
+  xlogs:
+    driver: local
+
+services:
+  # PgBouncer connection pooler
+  obx_pool:
+    image: edoburu/pgbouncer:latest
+    container_name: obx_pool
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    environment:
+      - DB_HOST=${PG_HOST:-obx_base}
+      - DB_PORT=${PG_PORT:-5432}
+      - DB_NAME=${PG_DATA:-obx}
+      - DB_USER=${PG_USER:-dbe}
+      - DB_PASSWORD=${PG_PASS:-rahasia}
+      - AUTH_TYPE=scram-sha-256
+      - POOL_MODE=transaction
+      - DEFAULT_POOL_SIZE=20
+      - MAX_CLIENT_CONN=1000
+      - TZ=${TZ:-Asia/Jakarta}
+    ports:
+      - "36662:5432"
+    volumes:
+      - ./obx_base/pgbouncer.txt:/etc/pgbouncer/userlist.txt:ro
+    depends_on:
+      obx_base:
+        condition: service_healthy
+    restart: always
+    networks:
+      blackbox:
+        ipv4_address: 172.99.66.2
+
+  # Update obx_rest to use pool instead of direct connection
+  obx_rest:
+    environment:
+      - PG_HOST=${PG_HOST:-obx_pool}
+      - IS_POOL=${IS_POOL:-true}
+    depends_on:
+      obx_pool:
+        condition: service_started
+
+  # PgAdmin database management UI
+  obx_tool:
+    image: dpage/pgadmin4:latest
+    container_name: obx_tool
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${AD_MAIL:-admin@localhost}
+      - PGADMIN_DEFAULT_PASSWORD=${AD_PASS:-rahasia}
+      - TZ=${TZ:-Asia/Jakarta}
+    restart: always
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+    ports:
+      - "36663:80"
+    networks:
+      blackbox:
+        ipv4_address: 172.99.66.3
+    depends_on:
+      - obx_pool
+
+  # Elasticsearch for nginx log sync
+  obx_elas:
+    image: elasticsearch:8.17.0
+    container_name: obx_elas
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    environment:
+      - cluster.name=omnisight
+      - node.name=obx_elas
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - TZ=${TZ:-Asia/Jakarta}
+    ports:
+      - "36671:9200"
+    volumes:
+      - elastics:/usr/share/elasticsearch/data
+    restart: always
+    networks:
+      blackbox:
+        ipv4_address: 172.99.66.4
+
+  # Update obx_agent_ws to use elasticsearch
+  obx_agent_ws:
+    environment:
+      - ES_LINK=${ES_LINK:-http://obx_elas:9200}
+      - IS_POOL=${IS_POOL:-true}
+    depends_on:
+      obx_elas:
+        condition: service_started
+
+  # Update agents to use pool
+  obx_agent_vm:
+    environment:
+      - IS_POOL=${IS_POOL:-true}
+
+  obx_agent_mx:
+    environment:
+      - IS_POOL=${IS_POOL:-true}
+    volumes:
+      - xlogs:/app/syslog_buffer

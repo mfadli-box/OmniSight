@@ -1,0 +1,6 @@
+obx_docs/config/
+notes.txt
+*.env
+*.env.pub
+*.env.dev
+*.exe

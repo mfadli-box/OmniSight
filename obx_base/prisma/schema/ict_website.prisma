@@ -1,0 +1,332 @@
+model ict_nginx_log {
+  id              String   @id @default(uuid())
+  timestamp       DateTime @default(now())
+  host            String   @db.VarChar(255)
+  server_ip       String   @db.VarChar(45)
+  client_ip       String   @db.VarChar(45)
+  country_iso     String?  @db.VarChar(5)
+  xff             String?  @db.Text
+  traffic_type    String   @db.VarChar(50)
+  domain          String   @db.VarChar(255)
+  url             String   @db.Text
+  referer         String?  @db.Text
+  args            String?  @db.Text
+  upstreamtime    String?  @db.VarChar(50)
+  responsetime    String?  @db.VarChar(50)
+  request_method  String   @db.VarChar(10)
+  status          String   @db.VarChar(5)
+  size            String?  @db.VarChar(50)
+  request_body    String?  @db.Text
+  request_length  Int?
+  protocol        String?  @db.VarChar(20)
+  upstreamhost    String?  @db.VarChar(255)
+  file_dir        String?  @db.VarChar(255)
+  http_user_agent String?  @db.Text
+  created_at      DateTime @default(now())
+
+  @@index([client_ip])
+  @@index([country_iso])
+  @@index([timestamp])
+}
+
+model ict_nginx_app {
+  id              String   @id @default(uuid())
+  timestamp       DateTime @default(now())
+  host            String   @db.VarChar(255)
+  server_ip       String   @db.VarChar(45)
+  client_ip       String   @db.VarChar(45)
+  country_iso     String?  @db.VarChar(5)
+  xff             String?  @db.Text
+  traffic_type    String   @db.VarChar(50)
+  domain          String   @db.VarChar(255)
+  url             String   @db.Text
+  referer         String?  @db.Text
+  args            String?  @db.Text
+  upstreamtime    String?  @db.VarChar(50)
+  responsetime    String?  @db.VarChar(50)
+  request_method  String   @db.VarChar(10)
+  status          String   @db.VarChar(5)
+  size            String?  @db.VarChar(50)
+  request_body    String?  @db.Text
+  request_length  Int?
+  protocol        String?  @db.VarChar(20)
+  upstreamhost    String?  @db.VarChar(255)
+  file_dir        String?  @db.VarChar(255)
+  http_user_agent String?  @db.Text
+  created_at      DateTime @default(now())
+
+  @@index([client_ip])
+  @@index([timestamp])
+  @@index([country_iso])
+}
+
+model ict_nginx_atc {
+  id              String   @id @default(uuid())
+  timestamp       DateTime @default(now())
+  host            String   @db.VarChar(255)
+  server_ip       String   @db.VarChar(45)
+  client_ip       String   @db.VarChar(45)
+  country_iso     String?  @db.VarChar(5)
+  xff             String?  @db.Text
+  traffic_type    String   @db.VarChar(50)
+  domain          String   @db.VarChar(255)
+  url             String   @db.Text
+  referer         String?  @db.Text
+  args            String?  @db.Text
+  upstreamtime    String?  @db.VarChar(50)
+  responsetime    String?  @db.VarChar(50)
+  request_method  String   @db.VarChar(10)
+  status          String   @db.VarChar(5)
+  size            String?  @db.VarChar(50)
+  request_body    String?  @db.Text
+  request_length  Int?
+  protocol        String?  @db.VarChar(20)
+  upstreamhost    String?  @db.VarChar(255)
+  file_dir        String?  @db.VarChar(255)
+  http_user_agent String?  @db.Text
+  created_at      DateTime @default(now())
+
+  @@index([client_ip])
+  @@index([timestamp])
+  @@index([country_iso])
+}
+
+model ict_nginx_atc_sum {
+  id            String   @id @default(uuid())
+  date          String   @db.VarChar(10)
+  client_ip     String   @db.VarChar(45)
+  traffic_type  String   @db.VarChar(50)
+  target_domain String   @db.VarChar(255)
+  total_hits    BigInt   @default(1)
+  last_seen     DateTime @default(now())
+
+  @@unique([date, client_ip, traffic_type, target_domain], name: "uq_atc_sum_composite")
+}
+
+model ict_nginx_sla {
+  id                  String  @id @default(uuid())
+  date                String  @unique @db.VarChar(10)
+  total_requests      BigInt  @default(0)
+  successful_requests BigInt  @default(0)
+  client_errors       BigInt  @default(0)
+  server_errors       BigInt  @default(0)
+  attack_requests     BigInt  @default(0)
+  avg_response_time   Decimal @default(0.0000) @db.Decimal(10, 4)
+  sla_percentage      Decimal @default(0.00) @db.Decimal(5, 2)
+}
+
+model ict_ip_whitelist {
+  id          String   @id @default(uuid())
+  ip_or_cidr  String   @unique @db.VarChar(50)
+  description String?  @db.Text
+  created_at  DateTime @default(now())
+}
+
+model ict_ip_blacklist {
+  id           String    @id @default(uuid())
+  ip           String    @unique @db.VarChar(45)
+  threat_score Int
+  reason       String    @db.VarChar(50)
+  banned_at    DateTime  @default(now())
+  expires_at   DateTime?
+  is_permanent Boolean   @default(false)
+}
+
+model ict_waf_bypass_rule {
+  id           String   @id @default(uuid())
+  domain       String   @db.VarChar(255)
+  url_path     String   @db.Text
+  args_pattern String?  @db.Text
+  description  String?  @db.Text
+  created_at   DateTime @default(now())
+
+  @@index([domain, url_path])
+}
+
+model ict_nginx_site {
+  id             String   @id @default(uuid())
+  company_id     String
+  host_id        String
+  domain         String   @db.VarChar(255)
+  site_type      String   @default("proxy") @db.VarChar(20)
+  upstream_id    String?
+  proxy_pass     String?  @db.VarChar(500)
+  root_dir       String?  @db.VarChar(500)
+  redirect_url   String?  @db.VarChar(500)
+  ssl_enabled    Boolean  @default(true)
+  ssl_cert_id    String?
+  extra_config   String?  @db.Text
+  config_content String?  @db.Text
+  deploy_status  String   @default("pending") @db.VarChar(20)
+  is_active      Boolean  @default(true)
+  created_at     DateTime @default(now())
+  updated_at     DateTime @default(now())
+
+  @@unique([company_id, host_id, domain])
+  @@index([host_id])
+  @@index([company_id])
+}
+
+model ict_nginx_config_ver {
+  id         String   @id @default(uuid())
+  company_id String
+  site_id    String
+  version    Int
+  file_path  String   @db.Text
+  content    String   @db.Text
+  created_at DateTime @default(now())
+  created_by String
+
+  @@unique([site_id, version])
+  @@index([site_id])
+}
+
+model ict_nginx_config_file {
+  id         String   @id @default(uuid())
+  company_id String
+  host_id    String
+  file_path  String   @db.Text
+  file_type  String   @db.VarChar(20)
+  content    String   @db.Text
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+
+  @@unique([host_id, file_path])
+  @@index([host_id])
+}
+
+model ict_nginx_upstream {
+  id          String   @id @default(uuid())
+  company_id  String
+  name        String   @db.VarChar(100)
+  description String?  @db.Text
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now())
+
+  @@unique([company_id, name])
+  @@index([company_id])
+}
+
+model ict_nginx_upstream_server {
+  id           String   @id @default(uuid())
+  upstream_id  String
+  address      String   @db.VarChar(255)
+  weight       Int      @default(1)
+  max_fails    Int      @default(3)
+  fail_timeout Int      @default(30)
+  backup       Boolean  @default(false)
+  is_active    Boolean  @default(true)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @default(now())
+
+  @@index([upstream_id])
+}
+
+model ict_ssl_certificate {
+  id              String    @id @default(uuid())
+  company_id      String
+  domain          String    @db.VarChar(255)
+  alt_names       Json?     @default("[]")
+  issuer          String?   @db.VarChar(100)
+  fingerprint     String?   @db.VarChar(128)
+  not_before      DateTime?
+  not_after       DateTime?
+  auto_renew      Boolean   @default(true)
+  renew_status    String    @default("pending") @db.VarChar(20)
+  last_renewed_at DateTime?
+  provider        String    @default("letsencrypt") @db.VarChar(30)
+  private_key     String?   @db.Text
+  cert_body       String?   @db.Text
+  chain_body      String?   @db.Text
+  error_message   String?   @db.Text
+  is_active       Boolean   @default(true)
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @default(now())
+
+  @@unique([company_id, domain])
+  @@index([company_id])
+  @@index([not_after])
+}
+
+model ict_ssl_acme_account {
+  id         String   @id @default(uuid())
+  company_id String
+  email      String   @db.VarChar(255)
+  provider   String   @default("letsencrypt") @db.VarChar(30)
+  kid        String?  @db.Text
+  hmac_key   String?  @db.Text
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+
+  @@unique([company_id, email, provider])
+  @@index([company_id])
+}
+
+model ict_ssl_site_link {
+  id         String   @id @default(uuid())
+  company_id String
+  cert_id    String
+  site_id    String
+  created_at DateTime @default(now())
+
+  @@unique([cert_id, site_id])
+  @@index([site_id])
+}
+
+model ict_uptimerobot_log {
+  id                  String    @id @default(uuid())
+  incident_id         String    @db.VarChar(100)
+  monitor_id          BigInt
+  monitor_url         String    @db.Text
+  monitor_name        String    @db.VarChar(255)
+  monitor_type        String    @db.VarChar(20)
+  monitor_group       String?   @db.VarChar(255)
+  http_status_code    Int       @default(0)
+  alert_type          Int
+  alert_type_name     String    @db.VarChar(50)
+  alert_region        String?   @db.VarChar(100)
+  alert_location      String?   @db.VarChar(255)
+  alert_details       String?   @db.VarChar(255)
+  alert_duration      Int       @default(0)
+  alert_datetime      DateTime
+  incident_start_time DateTime?
+  incident_end_time   DateTime?
+  response_time       Int       @default(0)
+  created_at          DateTime  @default(now())
+
+  @@index([monitor_id, alert_datetime])
+  @@index([alert_datetime])
+  @@index([incident_id])
+}
+
+model ict_uptimerobot_sum {
+  id                String   @id @default(uuid())
+  date              String   @db.VarChar(10)
+  monitor_id        BigInt
+  monitor_name      String   @db.VarChar(255)
+  monitor_url       String   @db.Text
+  total_checks      BigInt   @default(0)
+  up_count          BigInt   @default(0)
+  down_count        BigInt   @default(0)
+  downtime_seconds  BigInt   @default(0)
+  avg_response_time Decimal  @default(0.0000) @db.Decimal(10, 4)
+  uptime_percentage Decimal  @default(0.00) @db.Decimal(5, 2)
+  last_seen         DateTime @default(now())
+
+  @@unique([date, monitor_id], name: "uq_uptimerobot_sum_composite")
+  @@index([monitor_id])
+}
+
+model ict_uptimerobot_sla {
+  id                String  @id @default(uuid())
+  date              String  @unique @db.VarChar(10)
+  total_checks      BigInt  @default(0)
+  up_count          BigInt  @default(0)
+  down_count        BigInt  @default(0)
+  downtime_seconds  BigInt  @default(0)
+  avg_response_time Decimal @default(0.0000) @db.Decimal(10, 4)
+  overall_uptime    Decimal @default(0.00) @db.Decimal(5, 2)
+}

@@ -1,0 +1,6 @@
+node_modules
+prisma/migrations
+prisma/migrations.dev
+prisma/migrations.pub
+.env
+pgbouncer.txt

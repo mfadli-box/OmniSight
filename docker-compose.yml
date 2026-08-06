@@ -1,0 +1,208 @@
+# Production docker-compose — Core Services Only
+# For development with pgadmin/elasticsearch, use: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+networks:
+  blackbox:
+    external:
+      name: blackbox
+
+volumes:
+  pgsql:
+    driver: local
+  xfile:
+    driver: local
+  xback:
+    driver: local
+  xlogs:
+    driver: local
+  xsess:
+    driver: local
+
+services:
+  obx_base:
+    image: postgres:18-alpine
+    container_name: obx_base
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    environment:
+      - POSTGRES_DB=${PG_DATA:-obx}
+      - POSTGRES_BACKUP=${PG_BACK:-obx_backup}
+      - POSTGRES_USER=${PG_USER:-dbe}
+      - POSTGRES_PASSWORD=${PG_PASS:-rahasia}
+      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256 --auth-local=scram-sha-256
+      - TZ=${TZ:-Asia/Jakarta}
+    ports:
+      - "36661:5432"
+    volumes:
+      - pgsql:/var/lib/postgresql
+      - ./obx_base/pgbouncer.sh:/docker-entrypoint-initdb.d/init.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER:-dbe} -d ${PG_DATA:-obx}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+    networks:
+      blackbox:
+        ipv4_address: 172.99.66.1
+
+  obx_rest:
+    build:
+      context: ./obx_rest
+      dockerfile: Dockerfile
+    container_name: obx_rest
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    environment:
+      - PG_HOST=${PG_HOST:-obx_base}
+      - PG_PORT=${PG_PORT:-5432}
+      - PG_USER=${PG_USER:-dbe}
+      - PG_PASS=${PG_PASS:-rahasia}
+      - PG_DATA=${PG_DATA:-obx}
+      - IS_POOL=${IS_POOL:-false}
+      - RE_SECRET=${RE_SECRET:-rahasia}
+      - KEY_ROBOT=${KEY_ROBOT:-}
+      - IVL_DOCKER=${IVL_DOCKER:-3}
+      - DIR_SESSION=${DIR_SESSION:-/var/lib/omnisight/sessions}
+      - TZ=${TZ:-Asia/Jakarta}
+    ports:
+      - "36665:36665"
+    depends_on:
+      obx_base:
+        condition: service_healthy
+    restart: always
+    volumes:
+      - xfile:/root/files:rw
+      - xsess:/var/lib/omnisight/sessions:rw
+    networks:
+      blackbox:
+        ipv4_address: 172.99.66.5
+
+  obx_site:
+    build:
+      context: ./obx_site
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_WS_POOL=${WS_POOL:-ws://obx_rest:36665}
+    container_name: obx_site
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    environment:
+      - BE_POOL=${BE_POOL:-http://obx_rest:36665}
+      - WS_NAME=${WS_NAME:-OmniSight}
+      - WS_META=${WS_META:-OmniSight}
+      - WS_DESC=${WS_DESC:-OmniSight}
+      - NEXT_PUBLIC_WS_POOL=${WS_POOL:-ws://obx_rest:36665}
+      - TZ=${TZ:-Asia/Jakarta}
+    ports:
+      - "36666:36666"
+    depends_on:
+      - obx_rest
+    restart: always
+    volumes:
+      - xfile:/app/files:ro
+    networks:
+      blackbox:
+        ipv4_address: 172.99.66.6
+
+  obx_agent_ws:
+    build:
+      context: ./obx_auto/agent_ws
+      dockerfile: Dockerfile
+    container_name: obx_agent_ws
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    environment:
+      - PG_HOST=${PG_HOST:-obx_base}
+      - PG_PORT=${PG_PORT:-5432}
+      - PG_USER=${PG_USER:-dbe}
+      - PG_PASS=${PG_PASS:-rahasia}
+      - PG_DATA=${PG_DATA:-obx}
+      - IS_POOL=${IS_POOL:-false}
+      - FT_HTTP=${FT_HTTP:-150}
+      - ES_LINK=${ES_LINK:-}
+      - RE_PATH=${RE_PATH:-obx_agent_ws}
+      - RE_NORMAL=${RE_NORMAL:-7}
+      - RE_ATTACK=${RE_ATTACK:-90}
+      - TZ=${TZ:-Asia/Jakarta}
+    volumes:
+      - xback:/var/log/auto
+    depends_on:
+      - obx_base
+    restart: always
+    networks:
+      blackbox:
+        ipv4_address: 172.99.66.11
+
+  # Docker/VM Host Management Agent
+  # ROBOT_VM_TOKEN: Get from registered host ID via API (POST /rest/pages/DK01 returns id)
+  obx_agent_vm:
+    build:
+      context: ./obx_auto/agent_vm
+      dockerfile: Dockerfile
+    container_name: obx_agent_vm
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    environment:
+      - API_URL=${BE_POOL:-http://obx_rest:36665}
+      - KEY_ROBOT=${KEY_ROBOT:-}
+      - IDA_HOST=${ROBOT_VM_TOKEN:-}
+      - IVL_POOL=${IVL_POOL:-30}
+      - IVL_HEARTBEAT=${IVL_HEARTBEAT:-60}
+      - SOC_DOCKER=/var/run/docker.sock
+      - DIR_NGINX=/etc/nginx
+      - DIR_LEGO=/etc/lego
+      - DIR_TRIVY=/tmp/trivy
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - TZ=${TZ:-Asia/Jakarta}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /:/hostfs:ro
+    depends_on:
+      - obx_rest
+    restart: always
+    networks:
+      blackbox:
+        ipv4_address: 172.99.66.12
+
+  # MikroTik RouterOS Agent
+  # ROBOT_MT_TOKEN: Get from registered device ID via API (POST /rest/pages/IM02 returns id)
+  obx_agent_mx:
+    build:
+      context: ./obx_auto/agent_mx
+      dockerfile: Dockerfile
+    container_name: obx_agent_mx
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    environment:
+      - API_URL=${BE_POOL:-http://obx_rest:36665}
+      - KEY_ROBOT=${KEY_ROBOT:-}
+      - IDA_HOST=${ROBOT_MT_TOKEN:-}
+      - IVL_POOL=${IVL_POOL:-30}
+      - IVL_HEARTBEAT=${IVL_HEARTBEAT:-60}
+      - IPP_SYSLOG=0.0.0.0:514
+      - DIR_SYSLOG=./syslog_buffer
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - TZ=${TZ:-Asia/Jakarta}
+    volumes:
+      - xlogs:/app/syslog_buffer
+    ports:
+      - "36664:514/udp"
+    depends_on:
+      - obx_rest
+    restart: always
+    networks:
+      blackbox:
+        ipv4_address: 172.99.66.13

@@ -1,0 +1,102 @@
+module_code: "XX99"
+module_name: "Example Module XX99"
+module_type: "list"
+owner_submodule: "REST"
+
+business_goal: "Menyediakan contoh modul referensi untuk alur autopilot pembuatan modul end-to-end."
+
+backend:
+  route_group: "/rest/pages"
+  route_base: "/rest/pages/XX99"
+  handler_code: "XX99"
+  endpoints:
+    - method: "GET"
+      path: "/rest/pages/XX99"
+      purpose: "List data"
+    - method: "GET"
+      path: "/rest/pages/XX99/:id"
+      purpose: "Detail data"
+    - method: "POST"
+      path: "/rest/pages/XX99"
+      purpose: "Create data"
+    - method: "PUT"
+      path: "/rest/pages/XX99/:id"
+      purpose: "Update data"
+    - method: "DELETE"
+      path: "/rest/pages/XX99/:id"
+      purpose: "Delete data"
+
+database:
+  primary_table: "dat_xx99"
+  prisma_schema_file: "obx_base/prisma/schema/dat_module.prisma"
+  fields:
+    - name: "id"
+      type: "string"
+      required: true
+      key: "pk"
+    - name: "company_id"
+      type: "string"
+      required: true
+      key: "fk"
+    - name: "code"
+      type: "string"
+      required: true
+      key: "unique"
+    - name: "name"
+      type: "string"
+      required: true
+      key: "normal"
+    - name: "is_active"
+      type: "boolean"
+      required: true
+      key: "normal"
+    - name: "created_at"
+      type: "datetime"
+      required: true
+      key: "audit"
+    - name: "updated_at"
+      type: "datetime"
+      required: true
+      key: "audit"
+  indexes:
+    - "company_id"
+    - "code"
+    - "is_active"
+  relations:
+    - table: "dat_company"
+      local_key: "company_id"
+      target_key: "id"
+
+frontend:
+  page_code: "XX99"
+  page_path: "/board/XX99"
+  ui_pattern: "DataTable+DataDialog"
+  fields:
+    - name: "company_id"
+      component: "Select"
+      required: true
+    - name: "code"
+      component: "Input"
+      required: true
+    - name: "name"
+      component: "Input"
+      required: true
+    - name: "is_active"
+      component: "Switch"
+      required: true
+  mobile_behavior: "DataTableCard"
+
+authorization:
+  roles_allowed: ["admin", "manager"]
+  privilege_code: "XX99"
+
+logging:
+  write_log_code: "XX99"
+
+test_minimum:
+  backend_cases: ["list_ok", "detail_ok", "create_ok", "update_ok", "delete_ok", "validation_error", "unauthorized"]
+  frontend_cases: ["render_list", "open_dialog", "submit_success", "submit_error", "delete_confirm"]
+
+documentation:
+  blueprint_file: "obx_docs/blueprint/REST/XX99.md"
+  guide_file: "obx_docs/guide/REST/XX99.md"

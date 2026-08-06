@@ -1,0 +1,144 @@
+model ict_mikrotik_device {
+  id         String    @id @default(uuid())
+  company_id String
+  host_id    String?
+  name       String    @db.VarChar(100)
+  ip_address String    @db.VarChar(45)
+  api_port   Int       @default(8728)
+  api_tls    Boolean   @default(true)
+  username   String    @db.VarChar(100)
+  password   String    @db.Text
+  model      String?   @db.VarChar(100)
+  version    String?   @db.VarChar(50)
+  identity   String?   @db.VarChar(100)
+  status     String    @default("offline") @db.VarChar(20)
+  last_seen  DateTime?
+  is_active  Boolean   @default(true)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @default(now())
+
+  @@unique([company_id, ip_address])
+  @@index([company_id])
+  @@index([host_id])
+}
+
+model ict_mikrotik_status {
+  id              String   @id @default(uuid())
+  company_id      String
+  device_id       String
+  cpu_percent     Decimal  @default(0.00) @db.Decimal(5, 2)
+  memory_total_mb Decimal  @default(0.00) @db.Decimal(12, 2)
+  memory_used_mb  Decimal  @default(0.00) @db.Decimal(12, 2)
+  memory_percent  Decimal  @default(0.00) @db.Decimal(5, 2)
+  disk_total_mb   Decimal  @default(0.00) @db.Decimal(12, 2)
+  disk_used_mb    Decimal  @default(0.00) @db.Decimal(12, 2)
+  disk_percent    Decimal  @default(0.00) @db.Decimal(5, 2)
+  uptime_seconds  BigInt   @default(0)
+  recorded_at     DateTime @default(now())
+
+  @@index([device_id, recorded_at])
+  @@index([company_id, recorded_at])
+}
+
+model ict_mikrotik_interface {
+  id          String   @id @default(uuid())
+  company_id  String
+  device_id   String
+  name        String   @db.VarChar(100)
+  type        String   @db.VarChar(50)
+  mac_address String?  @db.VarChar(17)
+  ip_address  String?  @db.VarChar(45)
+  status      String   @db.VarChar(20)
+  speed       String?  @db.VarChar(50)
+  recorded_at DateTime @default(now())
+
+  @@unique([device_id, name])
+  @@index([device_id])
+}
+
+model ict_mikrotik_firewall_rule {
+  id            String   @id @default(uuid())
+  company_id    String
+  device_id     String
+  chain         String   @db.VarChar(30)
+  action        String   @db.VarChar(10)
+  protocol      String?  @db.VarChar(10)
+  src_address   String?  @db.VarChar(45)
+  src_port      String?  @db.VarChar(50)
+  dst_address   String?  @db.VarChar(45)
+  dst_port      String?  @db.VarChar(50)
+  in_interface  String?  @db.VarChar(100)
+  out_interface String?  @db.VarChar(100)
+  comment       String?  @db.VarChar(255)
+  disabled      Boolean  @default(false)
+  priority      Int      @default(0)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @default(now())
+
+  @@index([device_id, chain])
+  @@index([company_id])
+}
+
+model ict_mikrotik_address_list {
+  id         String   @id @default(uuid())
+  company_id String
+  device_id  String
+  name       String   @db.VarChar(100)
+  comment    String?  @db.Text
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+
+  @@unique([device_id, name])
+  @@index([device_id])
+}
+
+model ict_mikrotik_address_entry {
+  id              String   @id @default(uuid())
+  company_id      String
+  address_list_id String
+  address         String   @db.VarChar(45)
+  comment         String?  @db.Text
+  timeout         Int?
+  created_at      DateTime @default(now())
+
+  @@index([address_list_id])
+}
+
+model ict_mikrotik_backup {
+  id           String   @id @default(uuid())
+  company_id   String
+  device_id    String
+  name         String   @db.VarChar(100)
+  size_bytes   BigInt   @default(0)
+  download_url String?  @db.Text
+  created_at   DateTime @default(now())
+  created_by   String
+
+  @@index([device_id])
+  @@index([company_id])
+}
+
+model ict_mikrotik_backup_file {
+  id         String   @id @default(uuid())
+  backup_id  String
+  data       String   @db.Text
+  created_at DateTime @default(now())
+
+  @@index([backup_id])
+}
+
+model ict_mikrotik_log {
+  id         String   @id @default(uuid())
+  company_id String
+  device_id  String
+  timestamp  DateTime @default(now())
+  topics     String   @db.VarChar(255)
+  severity   String   @db.VarChar(20)
+  message    String   @db.Text
+  source_ip  String?  @db.VarChar(45)
+  created_at DateTime @default(now())
+
+  @@index([device_id, timestamp])
+  @@index([company_id, timestamp])
+  @@index([severity])
+}

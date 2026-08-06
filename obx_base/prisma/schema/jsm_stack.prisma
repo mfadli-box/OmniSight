@@ -1,0 +1,291 @@
+enum jms_connect_type {
+  SSH
+  RDP
+  FTP
+  WEBAPP
+}
+
+enum jms_token_status {
+  ACTIVE
+  USED
+  EXPIRED
+  REVOKED
+}
+
+enum jms_session_event_type {
+  CONNECT
+  DISCONNECT
+  COMMAND
+  FILE_UPLOAD
+  FILE_DOWNLOAD
+  PROXY_ACCESS
+  DENY
+  TIMEOUT
+}
+
+model jms_asset_group {
+  id          String                 @id @default(uuid())
+  company_id  String
+  code        String
+  name        String
+  parent_id   String?
+  description String?
+  is_active   Boolean                @default(true)
+  created_at  DateTime               @default(now())
+  updated_at  DateTime               @default(now())
+  members     jms_asset_group_member[]
+
+  @@unique([company_id, code])
+  @@index([company_id])
+  @@index([parent_id])
+}
+
+model jms_asset {
+  id             String                   @id @default(uuid())
+  company_id     String
+  code           String
+  name           String
+  asset_type     String
+  address        String
+  protocol       String
+  port           Int?
+  platform       String?
+  status         String                   @default("READY")
+  is_active      Boolean                  @default(true)
+  created_at     DateTime                 @default(now())
+  updated_at     DateTime                 @default(now())
+  groups         jms_asset_group_member[]
+  accounts       jms_account[]
+  sessions       jms_session[]
+  connect_tokens jms_connect_token[]
+  file_transfers jms_file_transfer[]
+
+  @@unique([company_id, code])
+  @@index([company_id])
+  @@index([asset_type])
+  @@index([protocol])
+  @@index([is_active])
+}
+
+model jms_asset_group_member {
+  id         String          @id @default(uuid())
+  asset_id   String
+  group_id   String
+  created_at DateTime        @default(now())
+  asset      jms_asset       @relation(fields: [asset_id], references: [id])
+  group      jms_asset_group @relation(fields: [group_id], references: [id])
+
+  @@unique([asset_id, group_id])
+  @@index([group_id])
+}
+
+model jms_account {
+  id             String              @id @default(uuid())
+  company_id     String
+  asset_id       String?
+  name           String
+  username       String
+  secret_ref     String?
+  account_type   String
+  is_active      Boolean             @default(true)
+  created_at     DateTime            @default(now())
+  updated_at     DateTime            @default(now())
+  asset          jms_asset?          @relation(fields: [asset_id], references: [id])
+  secrets        jms_account_secret[]
+  sessions       jms_session[]
+  connect_tokens jms_connect_token[]
+
+  @@index([company_id])
+  @@index([asset_id])
+  @@index([username])
+  @@index([is_active])
+}
+
+model jms_account_secret {
+  id           String      @id @default(uuid())
+  company_id   String
+  account_id   String
+  secret_value String
+  secret_mode  String
+  expires_at   DateTime?
+  is_active    Boolean     @default(true)
+  created_at   DateTime    @default(now())
+  updated_at   DateTime    @default(now())
+  account      jms_account @relation(fields: [account_id], references: [id])
+
+  @@index([company_id])
+  @@index([account_id])
+  @@index([expires_at])
+}
+
+model jms_session {
+  id             String              @id @default(uuid())
+  company_id     String
+  asset_id       String
+  account_id     String?
+  user_id        String
+  session_type   String
+  started_at     DateTime            @default(now())
+  ended_at       DateTime?
+  status         String              @default("OPEN")
+  connection_info String?
+  created_at     DateTime            @default(now())
+  updated_at     DateTime            @default(now())
+  asset          jms_asset           @relation(fields: [asset_id], references: [id])
+  account        jms_account?        @relation(fields: [account_id], references: [id])
+  commands       jms_session_command[]
+  events         jms_session_event[]
+  transfers      jms_file_transfer[]
+
+  @@index([company_id])
+  @@index([asset_id])
+  @@index([account_id])
+  @@index([user_id])
+  @@index([status])
+}
+
+model jms_session_command {
+  id          String      @id @default(uuid())
+  session_id  String
+  user_id     String?
+  command     String
+  executed_at DateTime    @default(now())
+  session     jms_session @relation(fields: [session_id], references: [id])
+
+  @@index([session_id])
+  @@index([executed_at])
+}
+
+model jms_audit_log {
+  id          String   @id @default(uuid())
+  company_id  String
+  actor_id    String
+  action      String
+  target_type String
+  target_id   String?
+  detail      String?
+  created_at  DateTime @default(now())
+
+  @@index([company_id])
+  @@index([actor_id])
+  @@index([target_type])
+  @@index([created_at])
+}
+
+model jms_policy {
+  id          String   @id @default(uuid())
+  company_id  String
+  name        String
+  policy_type String
+  is_active   Boolean  @default(true)
+  config_json String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now())
+
+  @@unique([company_id, name])
+  @@index([company_id])
+  @@index([policy_type])
+  @@index([is_active])
+}
+
+model jms_approval {
+  id           String   @id @default(uuid())
+  company_id   String
+  request_type String
+  request_id   String
+  approver_id  String
+  status       String
+  note         String?
+  created_at   DateTime @default(now())
+  updated_at   DateTime @default(now())
+
+  @@index([company_id])
+  @@index([request_type])
+  @@index([request_id])
+  @@index([approver_id])
+  @@index([status])
+}
+
+model jms_web_app {
+  id            String              @id @default(uuid())
+  company_id    String
+  code          String
+  name          String
+  target_url    String
+  strip_prefix  Boolean             @default(true)
+  allowed_roles String?
+  is_active     Boolean             @default(true)
+  created_at    DateTime            @default(now())
+  updated_at    DateTime            @default(now())
+  connect_tokens jms_connect_token[]
+
+  @@unique([company_id, code])
+  @@index([company_id])
+  @@index([is_active])
+}
+
+model jms_connect_token {
+  id           String                 @id @default(uuid())
+  company_id   String
+  user_id      String
+  asset_id     String?
+  account_id   String?
+  app_id       String?
+  connect_type jms_connect_type
+  token_hash   String                 @unique
+  status       jms_token_status       @default(ACTIVE)
+  client_ip    String?
+  user_agent   String?
+  expires_at   DateTime
+  used_at      DateTime?
+  created_at   DateTime               @default(now())
+  updated_at   DateTime               @default(now())
+  asset        jms_asset?             @relation(fields: [asset_id], references: [id])
+  account      jms_account?           @relation(fields: [account_id], references: [id])
+  app          jms_web_app?           @relation(fields: [app_id], references: [id])
+
+  @@index([company_id])
+  @@index([user_id])
+  @@index([status])
+  @@index([expires_at])
+  @@index([connect_type])
+}
+
+model jms_session_event {
+  id           String                 @id @default(uuid())
+  session_id   String
+  user_id      String?
+  event_type   jms_session_event_type
+  message      String?
+  command_text String?
+  payload_json String?
+  created_at   DateTime               @default(now())
+  session      jms_session            @relation(fields: [session_id], references: [id])
+
+  @@index([session_id])
+  @@index([event_type])
+  @@index([created_at])
+}
+
+model jms_file_transfer {
+  id            String       @id @default(uuid())
+  company_id    String
+  session_id    String?
+  asset_id      String?
+  user_id       String
+  transfer_type String
+  source_path   String?
+  target_path   String?
+  file_name     String
+  file_size     BigInt?
+  status        String
+  created_at    DateTime     @default(now())
+  session       jms_session? @relation(fields: [session_id], references: [id])
+  asset         jms_asset?   @relation(fields: [asset_id], references: [id])
+
+  @@index([company_id])
+  @@index([session_id])
+  @@index([asset_id])
+  @@index([user_id])
+  @@index([created_at])
+}

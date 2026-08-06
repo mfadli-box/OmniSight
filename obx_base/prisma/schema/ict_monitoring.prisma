@@ -1,0 +1,113 @@
+model ict_push_device {
+  id         String   @id @default(uuid())
+  company_id String
+  user_id    String
+  platform   String   @db.VarChar(20)
+  token      String   @db.Text
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+
+  @@unique([user_id, platform, token])
+  @@index([company_id])
+}
+
+model ict_alert_rule {
+  id             String    @id @default(uuid())
+  company_id     String
+  host_id        String?
+  container_name String?   @db.VarChar(100)
+  metric         String    @db.VarChar(30)
+  operator       String    @db.VarChar(5)
+  threshold      Decimal   @db.Decimal(12, 2)
+  duration_sec   Int       @default(0)
+  enabled        Boolean   @default(true)
+  notify_to      String?   @db.VarChar(255)
+  last_triggered DateTime?
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @default(now())
+
+  @@index([company_id])
+}
+
+model ict_alert_notif {
+  id         String   @id @default(uuid())
+  company_id String
+  name       String   @db.VarChar(100)
+  channel    String   @db.VarChar(20)
+  config     Json     @default("{}")
+  enabled    Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+
+  @@index([company_id])
+}
+
+model ict_alert_history {
+  id              String   @id @default(uuid())
+  company_id      String
+  alert_rule_id   String
+  notification_id String
+  status          String   @db.VarChar(20)
+  response        String?  @db.Text
+  sent_at         DateTime @default(now())
+
+  @@index([company_id, sent_at])
+}
+
+model ict_update_job {
+  id            String    @id @default(uuid())
+  company_id    String
+  host_id       String
+  name          String    @db.VarChar(100)
+  job_type      String    @db.VarChar(20)
+  schedule_cron String?   @db.VarChar(100)
+  auto_reboot   Boolean   @default(false)
+  reboot_window Json?     @default("{}")
+  hold_packages Json?     @default("[]")
+  max_retries   Int       @default(2)
+  enabled       Boolean   @default(true)
+  last_run_at   DateTime?
+  last_status   String?   @db.VarChar(20)
+  is_active     Boolean   @default(true)
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @default(now())
+
+  @@index([company_id])
+  @@index([host_id])
+}
+
+model ict_update_history {
+  id               String    @id @default(uuid())
+  company_id       String
+  host_id          String
+  job_id           String?
+  status           String    @db.VarChar(20)
+  packages_updated Int       @default(0)
+  packages_held    Int       @default(0)
+  packages_skipped Int       @default(0)
+  reboot_required  Boolean   @default(false)
+  reboot_performed Boolean   @default(false)
+  log              String?   @db.Text
+  error_message    String?   @db.Text
+  triggered_by     String    @db.VarChar(20)
+  created_by       String
+  started_at       DateTime?
+  completed_at     DateTime?
+  created_at       DateTime  @default(now())
+
+  @@index([host_id, started_at])
+  @@index([company_id])
+  @@index([job_id])
+}
+
+model ict_update_package {
+  id          String  @id @default(uuid())
+  history_id  String
+  name        String  @db.VarChar(255)
+  old_version String? @db.VarChar(50)
+  new_version String? @db.VarChar(50)
+  status      String  @db.VarChar(20)
+
+  @@index([history_id])
+}
